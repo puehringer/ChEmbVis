@@ -1,0 +1,14 @@
+name: api_tsne
+
+channels:
+  - defaults
+  - conda-forge
+
+dependencies:
+  - python=3.7
+  - flask
+  - flask-cors
+  - h5py=2.10.0
+  - tensorflow-gpu==1.14
+  - pip:
+      - git+https://github.com/FrancescoCrecchi/Multiscale-Parametric-t-SNE.git

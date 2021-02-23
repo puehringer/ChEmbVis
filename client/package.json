@@ -1,0 +1,77 @@
+{
+  "name": "client",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^5.15.2",
+    "@testing-library/jest-dom": "^5.11.9",
+    "@testing-library/react": "^11.2.5",
+    "@testing-library/user-event": "^12.7.1",
+    "@types/jest": "^26.0.20",
+    "@types/node": "^12.20.1",
+    "@types/react": "^16.14.4",
+    "@types/react-bootstrap": "^0.32.25",
+    "@types/react-dom": "^16.9.11",
+    "bootstrap": "^4.6.0",
+    "d3-array": "^2.11.0",
+    "d3-color": "^2.0.0",
+    "d3-scale": "^3.2.3",
+    "lineupjs": "^4.1.1",
+    "lodash.debounce": "^4.0.8",
+    "lodash.get": "^4.4.2",
+    "lodash.groupby": "^4.6.0",
+    "lodash.merge": "^4.6.2",
+    "lodash.throttle": "^4.1.1",
+    "lodash.concat": "^4.5.0",
+    "memoize-one": "^5.1.1",
+    "plotly.js-dist": "^1.58.4",
+    "react": "^17.0.1",
+    "react-bootstrap": "^1.4.3",
+    "react-dom": "^17.0.1",
+    "react-grid-layout": "^1.2.0",
+    "react-plotly.js": "^2.4.0",
+    "react-scripts": "4.0.1",
+    "typescript": "^4.1.5",
+    "web-vitals": "^0.2.4"
+  },
+  "devDependencies": {
+    "@types/bootstrap": "^4.6.0",
+    "@types/d3-array": "^2.9.0",
+    "@types/d3-color": "^2.0.1",
+    "@types/d3-scale": "^3.2.2",
+    "@types/lodash.debounce": "^4.0.6",
+    "@types/lodash.get": "^4.4.6",
+    "@types/lodash.groupby": "^4.6.6",
+    "@types/lodash.merge": "^4.6.6",
+    "@types/lodash.throttle": "^4.1.6",
+    "@types/lodash.concat": "^4.5.6",
+    "@types/react-grid-layout": "^1.1.1",
+    "@types/react-plotly.js": "^2.2.4"
+  },
+  "//proxy": "Proxy to API: https://create-react-app.dev/docs/proxying-api-requests-in-development",
+  "proxy": "http://api:5000/",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

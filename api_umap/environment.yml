@@ -1,0 +1,13 @@
+name: umap_api
+
+channels:
+  - defaults
+  - conda-forge
+
+dependencies:
+  - python=3.8
+  - flask
+  - flask-cors
+  - numba=0.52.0
+  - tensorflow=2.2.0
+  - conda-forge::umap-learn>=0.5

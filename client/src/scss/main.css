@@ -1,0 +1,69 @@
+/*TODO: Make scss with sass-loader*/
+.structure-card {
+  transition: transform 0.3s;
+}
+
+.structure-card:hover {
+  transform: scale(1.02);
+}
+
+/* Trick to make all images  */
+.structure-card {
+  position: relative;
+}
+
+/* Create empty container with same height as width */
+.structure-card::before {
+  content: "";
+  width: 100%;
+  padding-top: 100%; /* padding is computed from width */
+}
+
+/* Position the image absolutely in above created container */
+.structure-card .card-img-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
+/* Add a .modal-full-width class (larger than xl) */
+.modal-full-width {
+  max-width: 90vw;
+}
+
+.modal-full-width .modal-content {
+  height: 90vh;
+}
+
+.modal-body {
+  overflow: auto;
+}
+
+/* Lineup styles */
+.lineup-wrapper {
+  height: 80vh;
+  /* overflow: auto; */
+}
+
+.lu-side-panel {
+  /* Allow overflowing of the side panel */
+  overflow: auto;
+}
+
+.main-ranking .lineup-engine {
+  height: 100%;
+}
+
+/* react-grid-layout Styles */
+.react-grid-item:not(:hover) > .react-grid-item-drag-handle {
+  display: none;
+}
+.react-grid-item.react-grid-placeholder {
+  background: lightgray;
+}
+
+/* Remove border of details element */
+details > summary {
+  outline: transparent !important;
+}

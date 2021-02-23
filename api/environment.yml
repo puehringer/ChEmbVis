@@ -1,0 +1,23 @@
+name: api
+
+channels:
+  - rdkit
+  - defaults
+  - conda-forge
+
+dependencies:
+  - python=3.7
+  - rdkit::rdkit=2020.09.1.0
+  - tmap::tmap
+  - mhfp
+  - scikit-learn
+  - numpy>=1.15.4
+  - flask
+  - flask-smorest
+  - flask-cors
+  - flask-caching
+  - curl
+  - unzip
+  - tensorflow-gpu==1.15
+  - conda-forge::umap-learn>=0.5
+  - requests
