@@ -1,4 +1,4 @@
-import { IInterpolatedParticle, IParticle } from "../interfaces";
+import { IInterpolatedParticle, IParticle, IRegistry } from "../interfaces";
 
 function fetchRaw({ url, data, method = "POST" }: { url: string; data?: any; method?: string }): Promise<Response> {
   return fetch(url, {
@@ -37,14 +37,12 @@ export function runMSO(options: {
   phi1?: number;
   phi2?: number;
   phi3?: number;
+  objectives: any[];
 }): Promise<IParticle[]> {
   return fetchJSON<IParticle[]>("/api/pso/", options);
 }
 
-export function embedStructures(data: {
-  structures: string[];
-  additional: { [key: string]: any };
-}): Promise<IParticle[]> {
+export function embedStructures(data: { structures: string[] }): Promise<IParticle[]> {
   return fetchJSON("/api/embedding/", data);
 }
 
@@ -52,9 +50,7 @@ export function getChemblUMAPEmbedding(): Promise<IParticle[]> {
   return fetchRaw({
     url: "/api/embedding/",
     method: "GET",
-  })
-    .then((res) => res.json())
-    .then((res: any[]) => res.map((p) => ({ ...p, projection: { chembl_umap: p.projection } })));
+  }).then((res) => res.json());
 }
 
 export function interpolateStructures(structures: string[], maxSamples?: number): Promise<IInterpolatedParticle[]> {
@@ -123,4 +119,11 @@ export function getTanimotoSimilarity(
     reference,
     fingerprint,
   });
+}
+
+export function getRegistry(): Promise<IRegistry> {
+  return fetchRaw({
+    url: "/api/registry/",
+    method: "GET",
+  }).then((res) => res.json());
 }

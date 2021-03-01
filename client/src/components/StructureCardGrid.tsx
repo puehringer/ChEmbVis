@@ -15,7 +15,7 @@ const StructureCardGridUnwrapped = <T extends IParticle>({
 }: {
   collections: ICollection<T>[];
   setCollections?(collections: ICollection<T>[]): void;
-  structureCardProps?: (structure: T, index: number) => any; // TODO: Return typings
+  structureCardProps?: (structure: T, index: number) => React.HTMLAttributes<HTMLDivElement>;
   tableClass?: string;
   renderTopForm?: React.ReactNode;
   selected?: IParticleSelection;

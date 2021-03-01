@@ -17,7 +17,7 @@ class ProjectionAPI(MethodView):
         additional_structures = args.get('additional_structures')
         additional_embedding = args.get('additional_embedding')
         projections, projection = compute_all_projections({'smiles': structures, 'embedding': embedding}, {
-                                                          'smiles': additional_structures, 'embedding': additional_embedding})
+                                                           'smiles': additional_structures, 'embedding': additional_embedding})
 
         return {
             'projections': projections,

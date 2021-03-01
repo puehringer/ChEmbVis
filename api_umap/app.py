@@ -9,6 +9,8 @@ import os
 import logging
 import sys
 from umap.parametric_umap import load_ParametricUMAP, ParametricUMAP
+from sklearn import manifold, decomposition
+from joblib import dump, load
 
 
 # One of these should prevent tensorflow logs
@@ -26,31 +28,6 @@ app = Flask(__name__)
 CORS(app)
 
 
-# https://umap-learn.readthedocs.io/en/latest/parametric_umap.html
-try:
-    # Load model
-    p_umap = load_ParametricUMAP('/_shared/p_umap')
-    logger.info('Succesfully loaded UMAP model')
-except Exception:
-    logger.exception('Loading UMAP model failed')
-    sys.exit(1)
-    # try:
-    #     logger.exception('Retraining model')
-    #     # Manually train the model
-    #     chembl_full = np.load(
-    #         '/home/data/chembl_ecfp4.npz', mmap_mode="r")['data']
-    #     p_umap = ParametricUMAP(verbose=True,
-    #                             batch_size=512,
-    #                             loss_report_frequency=1,
-    #                             n_neighbors=200,
-    #                             min_dist=0.7,
-    #                             metric='dice')
-    #     p_umap.fit_transform(chembl_full[:10_000])
-    #     p_umap.save('/home/backend/models/p_umap')
-    # except Exception:
-    #     logger.exception('Training model failed, the API is not ready!')
-
-
 @app.errorhandler(Exception)
 def handle_exception(e):
     logger.exception(e)
@@ -61,24 +38,105 @@ def handle_exception(e):
     }), code
 
 
-@app.route("/api/umap/", methods=['GET'])
-def get_umap():
+def get_chembl_cddd():
     data = np.load('/_shared/chembl_cddd.npz', allow_pickle=True)
     smiles = data['smiles'].tolist()
     embedding = data['embedding']
-    projection = p_umap.transform(embedding).tolist()
+    return smiles, embedding
+
+
+_umap_model = None
+
+
+def get_umap_model():
+    global _umap_model
+    if not _umap_model:
+        logger.info('Loading UMAP model')
+        # https://umap-learn.readthedocs.io/en/latest/parametric_umap.html
+        try:
+            # Load model
+            _umap_model = load_ParametricUMAP('/_shared/p_umap')
+            logger.info('Succesfully loaded UMAP model')
+        except Exception as e:
+            logger.exception('Loading UMAP model failed')
+            raise e
+            # sys.exit(1)
+            # try:
+            #     logger.exception('Retraining model')
+            #     # Manually train the model
+            #     chembl_full = np.load(
+            #         '/home/data/chembl_ecfp4.npz', mmap_mode="r")['data']
+            #     _umap_model = ParametricUMAP(verbose=True,
+            #                             batch_size=512,
+            #                             loss_report_frequency=1,
+            #                             n_neighbors=200,
+            #                             min_dist=0.7,
+            #                             metric='dice')
+            #     _umap_model.fit_transform(chembl_full[:10_000])
+            #     _umap_model.save('/home/backend/models/p_umap')
+            # except Exception:
+            #     logger.exception('Training model failed, the API is not ready!')
+    return _umap_model
+
+
+# Singleton instance of the PCA model
+_pca_model = None
+
+
+def get_pca_model():
+    global _pca_model
+    if not _pca_model:
+        try:
+            # Try to load it from disk
+            logger.info('Loading PCA model')
+            _pca_model = load('/_shared/p_pca.joblib')
+            logger.info('Succesfully loaded PCA model')
+            return _pca_model
+        except Exception:
+            logger.exception('Loading UMAP model failed')
+        # Otherwise fit it
+        logger.info('Fitting PCA model')
+        smiles, embedding = get_chembl_cddd()
+        # Compute the model and projection, or only projection if the model is present
+        if not _pca_model:
+            # Create new model
+            _pca_model = decomposition.PCA(n_components=2)
+            # Fit the model on the embedding data
+            _pca_model.fit(embedding)
+            # Store it for later use
+            dump(_pca_model, '/_shared/p_pca.joblib')
+            logger.info('Succesfully fit and saved PCA model')
+    return _pca_model
+
+
+def get_method(method):
+    if method == 'pca':
+        model = get_pca_model()
+    elif method == 'umap':
+        model = get_umap_model()
+    else:
+        raise ValueError(f'Invalid projection method {method}')
+    return model
+
+
+@app.route("/api/<method>/", methods=['GET'])
+def get_umap(method):
+    model = get_method(method)
+    smiles, embedding = get_chembl_cddd()
+    projection = model.transform(embedding).tolist()
     return jsonify(list({
         'structure': smiles[i],
         'projection': projection[i]
     } for i in range(len(smiles))))
 
 
-@app.route("/api/umap/", methods=['POST'])
-def run_umap():
+@app.route("/api/<method>/", methods=['POST'])
+def run_umap(method):
+    model = get_method(method)
     payload = request.get_json()
     data = payload.get('data')
     if data is None or not isinstance(data, list) or len(data) == 0:
         raise ValueError('No valid data array in json body')
 
     data = np.array(data)
-    return jsonify(p_umap.transform(data).tolist())
+    return jsonify(model.transform(data).tolist())

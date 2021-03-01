@@ -37,7 +37,7 @@ export const SubstructureMatchingForm = ({
               ...p,
               properties: {
                 ...(p.properties || {}),
-                [`Has ${smarts}`]: results[i].validity[p.structure] ? 1 : 0,
+                [`Has ${smarts}`]: Boolean(results[i].validity[p.structure]),
                 [`Count ${smarts}`]: results[i].counts[p.structure] ?? 0,
               },
             })),
@@ -58,7 +58,7 @@ export const SubstructureMatchingForm = ({
       <div className="form-group">
         <label htmlFor="smartsStructureInput">Substructure:</label>
         <div className="input-group input-group-sm">
-          <UseStructureInputAddon selection={selection} setValue={setSmarts} />
+          <UseStructureInputAddon value={smarts} selection={selection} setValue={setSmarts} />
           <input
             type="text"
             className="form-control form-control-sm"

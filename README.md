@@ -9,7 +9,7 @@ Several submodules make up the application:
 * <a href="api_tsne/README.md"><b>api_tsne</b></a>: API for pretrained parametric TSNE
 * <a href="notebook/README.md"><b>notebook</b></a>: Jupyter notebook with several experiments
 
-One reason why the API is split into several submodules is because they depend on different `tensorflow` versions, as the main API requires `tensorflow==1.15.0`, while the others depend on `tensorflow>=2.0`. The 
+One reason why the API is split into several submodules is because they depend on different `tensorflow` versions, as the main API requires `tensorflow==1.15.0`, while the others depend on `tensorflow>=2.0`.
 
 ## Getting Started
 

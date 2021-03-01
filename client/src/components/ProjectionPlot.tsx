@@ -17,14 +17,8 @@ const getSelectedIndices = memoizeOne(_getSelectedIndices);
 export interface IProjectionPlotProps {
   title?: string;
   marker?: Partial<Plotly.PlotMarker>;
-  markerFunction?: (
-    points: IParticle[],
-    index: number
-  ) => Partial<Plotly.PlotMarker>;
-  transformsFunction?: (
-    points: IParticle[],
-    index: number
-  ) => Plotly.DataTransform[];
+  markerFunction?: (points: IParticle[], index: number) => Partial<Plotly.PlotMarker>;
+  transformsFunction?: (points: IParticle[], index: number) => Plotly.DataTransform[];
   additionalTraces?: Plotly.Data | Plotly.Data[] | null;
   additionalTracesFunction?: (
     points: IParticle[],
@@ -60,27 +54,15 @@ export const ProjectionPlot = React.memo(
     const [figureState, setFigureState] = React.useState<Figure | null>(null);
     const [innerHover, setInnerHover] = React.useState<IParticle | null>(null);
 
-    const transforms = React.useMemo(() => transformsFunction?.(particles, 0), [
+    const transforms = React.useMemo(() => transformsFunction?.(particles, 0), [particles, transformsFunction]);
+    const marker = React.useMemo(() => markerFunction?.(particles, 0), [particles, markerFunction]);
+    const additionalTransforms = React.useMemo(() => transformsFunction?.(particles, 1), [
       particles,
       transformsFunction,
     ]);
-    const marker = React.useMemo(() => markerFunction?.(particles, 0), [
-      particles,
-      markerFunction,
-    ]);
-    const additionalTransforms = React.useMemo(
-      () => transformsFunction?.(particles, 1),
-      [particles, transformsFunction]
-    );
-    const additionalMarker = React.useMemo(
-      () => markerFunction?.(particles, 1),
-      [particles, markerFunction]
-    );
+    const additionalMarker = React.useMemo(() => markerFunction?.(particles, 1), [particles, markerFunction]);
     const additionalComputedTraces = React.useMemo(
-      () =>
-        additionalTracesFunction?.(particles, (p, axis) =>
-          lodashGet(p, axis === "x" ? xAccessor : yAccessor)
-        ),
+      () => additionalTracesFunction?.(particles, (p, axis) => lodashGet(p, axis === "x" ? xAccessor : yAccessor)),
       [particles, xAccessor, yAccessor, additionalTracesFunction]
     );
 
@@ -120,26 +102,14 @@ export const ProjectionPlot = React.memo(
         marker: additionalMarker,
         transforms: additionalTransforms,
       };
-    }, [
-      additionalParticles,
-      xAccessor,
-      yAccessor,
-      additionalMarker,
-      additionalTransforms,
-    ]);
+    }, [additionalParticles, xAccessor, yAccessor, additionalMarker, additionalTransforms]);
 
     const secondTraceWithSelection = React.useMemo<Plotly.Data>(() => {
-      const additionalSelectedpoints = getSelectedIndices(
-        additionalParticles,
-        selected
-      );
+      const additionalSelectedpoints = getSelectedIndices(additionalParticles, selected);
 
       return {
         ...secondTrace,
-        selectedpoints:
-          additionalSelectedpoints.length > 0
-            ? additionalSelectedpoints
-            : undefined,
+        selectedpoints: additionalSelectedpoints.length > 0 ? additionalSelectedpoints : undefined,
       };
     }, [secondTrace, selected, additionalParticles]);
 
@@ -169,11 +139,7 @@ export const ProjectionPlot = React.memo(
           data: [
             mainTraceWithSelection,
             secondTraceWithSelection,
-            ...(additionalTraces
-              ? Array.isArray(additionalTraces)
-                ? additionalTraces
-                : [additionalTraces]
-              : []),
+            ...(additionalTraces ? (Array.isArray(additionalTraces) ? additionalTraces : [additionalTraces]) : []),
             ...(additionalComputedTraces || []),
           ],
         };
@@ -182,13 +148,7 @@ export const ProjectionPlot = React.memo(
 
         return newFigureState;
       });
-    }, [
-      mainTraceWithSelection,
-      secondTraceWithSelection,
-      additionalTraces,
-      additionalComputedTraces,
-      title,
-    ]);
+    }, [mainTraceWithSelection, secondTraceWithSelection, additionalTraces, additionalComputedTraces, title]);
 
     React.useEffect(() => {
       const timeout = setTimeout(() => setHover(innerHover), 50);
@@ -198,9 +158,7 @@ export const ProjectionPlot = React.memo(
       };
     }, [innerHover, setHover]);
 
-    const getPointsFromEvent = (
-      e: Readonly<Plotly.PlotSelectionEvent> | null
-    ): IParticle[] => {
+    const getPointsFromEvent = (e: Readonly<Plotly.PlotSelectionEvent> | null): IParticle[] => {
       return (
         e?.points
           .map((p) => {

@@ -3,7 +3,7 @@ import marshmallow as ma
 
 class PSOArgsSchema(ma.Schema):
     structure = ma.fields.String(
-        required=True, validates=ma.validate.Length(min=2))
+        required=True, validate=ma.validate.Length(min=2))
     num_swarms = ma.fields.Integer(
         required=False, missing=3, validate=ma.validate.Range(min=1))
     num_part = ma.fields.Integer(
@@ -16,3 +16,5 @@ class PSOArgsSchema(ma.Schema):
     phi1 = ma.fields.Float(required=False, missing=None)
     phi2 = ma.fields.Float(required=False, missing=None)
     phi3 = ma.fields.Float(required=False, missing=None)
+    # TODO: Create model
+    objectives = ma.fields.List(ma.fields.Raw(), required=True, validate=ma.validate.Length(min=1))

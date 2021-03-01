@@ -61,7 +61,7 @@ export const ClusterSidePanel = React.memo(
     return (
       <>
         <Modal
-          show={showStructures && structuresToShow}
+          show={Boolean(showStructures && structuresToShow)}
           onHide={() => setShowStructures(null)}
           size="xl"
           dialogClassName="modal-full-width"
@@ -116,37 +116,35 @@ export const ClusterSidePanel = React.memo(
         {clusterNames.length > 0 ? (
           <>
             <p className="lead">Clusters</p>
-            <ul>
-              {clusterNames.map((cluster) => (
-                <li key={cluster} className="clearfix">
-                  {cluster} ({clusters[cluster].length})
-                  <div className="float-right">
-                    <div className="btn-group btn-group-sm ml-2 mr-2" role="group">
-                      <button
-                        type="button"
-                        className="btn btn-light"
-                        title="Show cluster in table view"
-                        onClick={() => {
-                          setShowStructures({ type: "cluster", cluster });
-                        }}
-                      >
-                        <i className="fas fa-fw fa-table" />
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-light"
-                        title="Delete cluster"
-                        onClick={() => {
-                          setClusters(cluster, null);
-                        }}
-                      >
-                        <i className="fas fa-fw fa-times" />
-                      </button>
-                    </div>
+            {clusterNames.map((cluster) => (
+              <div key={cluster} className="clearfix mb-1">
+                {cluster} ({clusters[cluster].length})
+                <div className="float-right">
+                  <div className="btn-group btn-group-sm ml-2 mr-2" role="group">
+                    <button
+                      type="button"
+                      className="btn btn-light"
+                      title="Show cluster in table view"
+                      onClick={() => {
+                        setShowStructures({ type: "cluster", cluster });
+                      }}
+                    >
+                      <i className="fas fa-fw fa-table" />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-danger"
+                      title="Delete cluster"
+                      onClick={() => {
+                        setClusters(cluster, null);
+                      }}
+                    >
+                      <i className="fas fa-fw fa-times" />
+                    </button>
                   </div>
-                </li>
-              ))}
-            </ul>
+                </div>
+              </div>
+            ))}
           </>
         ) : (
           <p className="lead">No clusters created</p>

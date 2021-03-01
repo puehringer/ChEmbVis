@@ -78,3 +78,19 @@ def mols_to_similarity_svg(mols):
                                                                      m, i, radius=2, fpType='bv'),
                                                                  draw2d=drawer)
     return _get_svg_from_drawer(drawer)
+
+
+def to_fingerprint(fingerprint):
+    if fingerprint == 'morgan':
+        def fp_getter(m): return AllChem.GetMorganFingerprintAsBitVect(m, 2)
+    elif fingerprint == 'daylight':
+        def fp_getter(m): return Chem.RDKFingerprint(m)
+    else:
+        raise ValueError(f'Fingerprint {fingerprint} unknown')
+    return fp_getter
+
+
+def mols_to_fingerprints(mols, fingerprint):
+    fp_getter = to_fingerprint(fingerprint)
+    mols = [_string_to_mol(mol) for mol in mols]
+    return [fp_getter(m) for m in mols]

@@ -1,8 +1,8 @@
 import { StringColumn, IDataRow, IStringFilter, equal, Column } from "lineupjs";
 
 export interface IStructureFilter extends IStringFilter {
-    filter: string;
-    valid: Set<string>;
+  filter: string;
+  valid: Set<string>;
 }
 
 export class StructureImageColumn extends StringColumn {
@@ -20,14 +20,18 @@ export class StructureImageColumn extends StringColumn {
   }
 
   getFilter() {
-      return this.structureFilter;
+    return this.structureFilter;
   }
 
   setFilter(filter: IStructureFilter | null) {
     if (equal(filter, this.structureFilter)) {
       return;
     }
-    
-    this.fire([StringColumn.EVENT_FILTER_CHANGED, Column.EVENT_DIRTY_VALUES, Column.EVENT_DIRTY], this.structureFilter, this.structureFilter = filter);
+
+    this.fire(
+      [StringColumn.EVENT_FILTER_CHANGED, Column.EVENT_DIRTY_VALUES, Column.EVENT_DIRTY],
+      this.structureFilter,
+      (this.structureFilter = filter)
+    );
   }
 }

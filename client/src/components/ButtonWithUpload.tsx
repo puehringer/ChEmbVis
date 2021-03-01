@@ -15,9 +15,7 @@ export function ButtonWithUpload({
   onUploadData?(data: string | null): boolean | void;
   onUploadResult?(data: string | null): boolean | void;
 }) {
-  const [uploadModalOpen, setUploadModalOpen] = React.useState<
-    "result" | "data" | null
-  >(null);
+  const [uploadModalOpen, setUploadModalOpen] = React.useState<"result" | "data" | null>(null);
   return (
     <>
       <FileUploadModal
@@ -25,11 +23,7 @@ export function ButtonWithUpload({
         setOpen={(open) => setUploadModalOpen(null)}
         onSave={(value) => {
           if (
-            (uploadModalOpen === "result"
-              ? onUploadResult
-              : uploadModalOpen === "data"
-              ? onUploadData
-              : null)?.(value)
+            (uploadModalOpen === "result" ? onUploadResult : uploadModalOpen === "data" ? onUploadData : null)?.(value)
           ) {
             setUploadModalOpen(null);
           }
@@ -39,12 +33,7 @@ export function ButtonWithUpload({
         <Button variant="primary" type="submit" disabled={loading || disabled}>
           {loading ? (
             <>
-              <span
-                className="spinner-grow spinner-grow-sm"
-                role="status"
-                aria-hidden="true"
-              ></span>{" "}
-              Loading...
+              <span className="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span> Loading...
             </>
           ) : (
             text

@@ -9,6 +9,9 @@ def tmap_hash_projection(mols):
     all_mols = [_string_to_mol(mol) for mol in mols]
     mols = list(filter(None, all_mols))
 
+    if len(mols) < 2: 
+        return None
+
     # The number of permutations used by the MinHashing algorithm
     perm = 512
 

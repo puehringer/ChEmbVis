@@ -9,6 +9,31 @@ from ..schema import PSOArgsSchema, ParticleSchema
 from ..utils import cached, catch_time, mol
 from ..constants import inference_model, blp, logger
 from ..projection import compute_all_projections
+from ..registry import models_by_name
+
+
+def get_scoring_function_from_dict(dictionary):
+    name = dictionary['name']
+    desirability = dictionary.get('desirability', None)
+    weight = dictionary.get('weight', 100)
+    kwargs = dictionary.get('additional_args', {})
+    func, description, is_mol_func = models_by_name[name]
+    if kwargs:
+        if name == "distance score":
+            target = inference_model.seq_to_emb(kwargs["query"])
+            func = partial(func, target=target)
+        elif (name == "substructure match") | (name == "substructure exclusion"):
+            query = Chem.MolFromSmiles(kwargs["query"])
+            func = partial(func, query=query)
+        else:
+            func = partial(func, **kwargs)
+    return ScoringFunction(
+        func=func,
+        name=name,
+        description=description,
+        weight=weight,
+        desirability=desirability,
+        is_mol_func=is_mol_func) if func else None
 
 
 @blp.route('/pso/')
@@ -28,6 +53,10 @@ class PSOAPI(MethodView):
         phi1 = args.get('phi1')
         phi2 = args.get('phi2')
         phi3 = args.get('phi3')
+        objectives = args.get('objectives')
+
+        scoring_functions = [get_scoring_function_from_dict(
+            dictionary) for dictionary in objectives]
 
         logger.info(
             f"Starting PSO from {structure} with {num_part} particles in {num_swarms} swarms for {iterations} iterations")
@@ -38,14 +67,14 @@ class PSOAPI(MethodView):
             "CC(=O)N"))  # use partial to define the additional argument (the substructure)
         # invert the resulting score to penalize for a match.
         miss_match_desirability = [{"x": 0, "y": 0}, {"x": 1, "y": 1}]
-        scoring_functions = [
-            ScoringFunction(heavy_atom_count, "hac",
-                            desirability=hac_desirability, is_mol_func=True),
-            ScoringFunction(qed_score, "qed", is_mol_func=True),
-            ScoringFunction(substructure_match, "miss_match",
-                            desirability=miss_match_desirability, is_mol_func=True),
-            ScoringFunction(penalize_macrocycles, "macro", is_mol_func=True)
-        ]
+        # scoring_functions = [
+        #     ScoringFunction(heavy_atom_count, "hac",
+        #                     desirability=hac_desirability, is_mol_func=True),
+        #     ScoringFunction(qed_score, "qed", is_mol_func=True),
+        #     ScoringFunction(substructure_match, "miss_match",
+        #                     desirability=miss_match_desirability, is_mol_func=True),
+        #     ScoringFunction(penalize_macrocycles, "macro", is_mol_func=True)
+        # ]
 
         opt = BasePSOptimizer.from_query(
             init_smiles=structure,
@@ -100,9 +129,8 @@ class PSOAPI(MethodView):
 
         return [{
             'structure': smiles[i],
-            'decoded': smiles[i],  # TODO
             # TODO: We probably don't want to return the embedding...
-            'embedding': x_stacked[i],
+            # 'embedding': x_stacked[i],
             'projection': {t: projection[t][0][i] for t in projections},
             'properties': {
                 **mol.compute_properties(smiles[i]),

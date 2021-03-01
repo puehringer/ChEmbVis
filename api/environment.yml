@@ -10,7 +10,7 @@ dependencies:
   - rdkit::rdkit=2020.09.1.0
   - tmap::tmap
   - mhfp
-  - scikit-learn
+  - anaconda::scikit-learn>=0.22
   - numpy>=1.15.4
   - flask
   - flask-smorest

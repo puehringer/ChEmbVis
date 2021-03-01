@@ -112,8 +112,18 @@ export const LineupWrapper = React.memo(
           padding: () => 0,
         }));
 
+      // TODO: I really don't like that, but Lineup infers the columns by the *first* entry in the data.
+      // So here we move the object with the most properties to the first position. We should probably create a "merged" object for that.
+      // https://github.com/lineupjs/lineupjs/blob/develop/src/provider/utils.ts#L268-L269
+      const mergedDataProperties = mergedData.map(({ properties = {} }) => properties);
+      const propertyWithMostEntries =
+        mergedDataProperties.reduce<object | null>((acc, cur) => {
+          return !acc || Object.keys(acc!).length < Object.keys(cur).length ? cur : acc;
+        }, null) || {};
+
       // The properties are a nested object, so we derive it using the builder and then inject the 'properties.' in the column.
-      const propertiesBuilder = builder(mergedData.map(({ properties = {} }) => properties)).deriveColumns();
+      const propertiesBuilder = builder([propertyWithMostEntries, ...mergedDataProperties]).deriveColumns();
+
       // @ts-ignore
       const propertiesColumns = (propertiesBuilder.columns as IColumnDesc[]).map(
         // @ts-ignore

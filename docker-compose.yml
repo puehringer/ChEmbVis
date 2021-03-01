@@ -33,7 +33,7 @@ services:
     volumes:
       # Code
       - ./api_umap:/home/backend
-      # Parametric model
+      # Shared folder
       - ./api_umap/_shared:/_shared
     runtime: nvidia
     environment:
@@ -57,8 +57,8 @@ services:
   #     - NVIDIA_DRIVER_CAPABILITIES=all
   #     # - FLASK_ENV=development
   #     # - FLASK_APP=app.py
-    ports:
-      - "5002:5000"
+  #   ports:
+  #     - "5002:5000"
   client:
     build: client
     volumes:

@@ -2,12 +2,14 @@ import * as React from "react";
 import { Alert } from "react-bootstrap";
 
 export const FormWrapper = ({
+  open = false,
   title,
   loading,
   setLoading,
   onSubmit,
   children,
 }: {
+  open?: boolean;
   title: string;
   loading: boolean;
   setLoading(loading: boolean): void;
@@ -17,24 +19,26 @@ export const FormWrapper = ({
   const [error, setError] = React.useState<string | null>(null);
 
   return (
-    <details>
+    <details open={open}>
       <summary className="lead">{title}</summary>
       <form
         onSubmit={async (e) => {
           e.preventDefault();
           e.stopPropagation();
 
-          setLoading(true);
+          if (e.currentTarget.reportValidity()) {
+            setLoading(true);
 
-          try {
-            setError(null);
-            await onSubmit();
-          } catch (e) {
-            console.error(e);
-            setError(e.toString());
+            try {
+              setError(null);
+              await onSubmit();
+            } catch (e) {
+              console.error(e);
+              setError(e.toString());
+            }
+
+            setLoading(false);
           }
-
-          setLoading(false);
         }}
       >
         {error ? (

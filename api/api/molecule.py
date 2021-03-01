@@ -102,14 +102,7 @@ class TanimotoAPI(MethodView):
                 f'Reference could not be parsed as SMILES: {reference}')
 
         # Define fingerprint getter
-        if fingerprint == 'morgan':
-            def fp_getter(
-                m): return AllChem.GetMorganFingerprintAsBitVect(m, 2)
-        elif fingerprint == 'daylight':
-            def fp_getter(m): return Chem.RDKFingerprint(m)
-        else:
-            raise ValueError(f'Fingerprint {fingerprint} unknown')
-
+        fp_getter = mol.to_fingerprint(fingerprint)
         reference_fp = fp_getter(reference_mol)
 
         # TODO: Use DataStructs.BulkTanimotoSimilarity instead

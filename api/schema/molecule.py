@@ -7,14 +7,14 @@ class MoleculeImageArgsSchema(ma.Schema):
 
 
 class MoleculesImageArgsSchema(ma.Schema):
-    structures = ma.fields.List(ma.fields.String(), required=True, validates=ma.validate.Length(min=1))
+    structures = ma.fields.List(ma.fields.String(), required=True, validate=ma.validate.Length(min=1))
     method = ma.fields.String(required=False, missing='mcs', validate=ma.validate.OneOf(['auto', 'single', 'murcko', 'mcs', 'similarity']))
     substructure = ma.fields.String(required=False)
 
 
 class MoleculesSubstructureArgsSchema(ma.Schema):
-    structures = ma.fields.List(ma.fields.String(), required=True, validates=ma.validate.Length(min=1))
-    smarts = ma.fields.String(required=True, validates=ma.validate.Length(min=1))
+    structures = ma.fields.List(ma.fields.String(), required=True, validate=ma.validate.Length(min=1))
+    smarts = ma.fields.String(required=True, validate=ma.validate.Length(min=1))
 
 
 class MoleculesSubstructureSchema(ma.Schema):
@@ -24,8 +24,8 @@ class MoleculesSubstructureSchema(ma.Schema):
 
 
 class MoleculesTanimotoArgsSchema(ma.Schema):
-    structures = ma.fields.List(ma.fields.String(), required=True, validates=ma.validate.Length(min=1))
-    reference = ma.fields.String(required=True, validates=ma.validate.Length(min=1))
+    structures = ma.fields.List(ma.fields.String(), required=True, validate=ma.validate.Length(min=1))
+    reference = ma.fields.String(required=True, validate=ma.validate.Length(min=1))
     fingerprint = ma.fields.String(required=False, missing='daylight', validate=ma.validate.OneOf(['morgan', 'daylight']))
 
 

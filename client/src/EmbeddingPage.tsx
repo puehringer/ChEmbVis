@@ -2,7 +2,15 @@ import * as React from "react";
 import { LoadingPage } from "./components/LoadingPage";
 import { PlotSelect } from "./components/PlotSelect";
 import { StructureCard } from "./components/StructureCard";
-import { EActiveTabs, ICollection, IParticle, IParticleSelection, IPlotOptions } from "./interfaces";
+import {
+  DEFAULT_CHEMBL_COLLECTION,
+  EActiveTabs,
+  ICollection,
+  IParticle,
+  IParticleSelection,
+  IPlotOptions,
+  IRegistry,
+} from "./interfaces";
 import { StructureCardGrid } from "./components/StructureCardGrid";
 import { HorizontalCollapse } from "./components/HorizontalCollapse";
 import { ClusterSidePanel, getClustersFromParticle } from "./ClusterSidePanel";
@@ -14,11 +22,13 @@ import { getChemblUMAPEmbedding } from "./utils/api";
 import { ScatterPlot } from "./components/ScatterPlot";
 
 export function EmbeddingPage({
+  registry,
   collections,
   setCollections,
   setInterpolationStructures,
   setActiveTab,
 }: {
+  registry: IRegistry | null;
   collections: ICollection[];
   setCollections(collections: ICollection[]): void;
   setInterpolationStructures(structures: string[]): void;
@@ -111,7 +121,7 @@ export function EmbeddingPage({
     colorBy: null,
     opacityBy: null,
     groupBy: null,
-    connectByValues: null,
+    connectBy: null,
     sizeBy: null,
   });
   const [customX, setCustomX] = React.useState<string | null>(null);
@@ -150,11 +160,8 @@ export function EmbeddingPage({
     if (plotOptions.groupBy && !availableProperties.includes(plotOptions.groupBy)) {
       setPlotOptions({ ...plotOptions, groupBy: null });
     }
-    if (
-      plotOptions.connectByValues &&
-      plotOptions.connectByValues.some((option) => !availableProperties.includes(option))
-    ) {
-      setPlotOptions({ ...plotOptions, connectByValues: null });
+    if (plotOptions.connectBy && plotOptions.connectBy.some((option) => !availableProperties.includes(option))) {
+      setPlotOptions({ ...plotOptions, connectBy: null });
     }
     if (plotOptions.sizeBy && !availableProperties.includes(plotOptions.sizeBy)) {
       setPlotOptions({ ...plotOptions, sizeBy: null });
@@ -162,175 +169,12 @@ export function EmbeddingPage({
   }, [availableProperties, availableOpacityProperties, plotOptions]);
 
   React.useEffect(() => {
-    if (!collections.find((c) => c.name === "ChEMBL")) {
-      // TODO: Add prop to manage additional points
+    if (!collections.find((c) => c.name === DEFAULT_CHEMBL_COLLECTION)) {
       getChemblUMAPEmbedding()
-        .then((data) => setCollections([...collections, { data, name: "ChEMBL" }]))
+        .then((data) => setCollections([...collections, { data, name: DEFAULT_CHEMBL_COLLECTION }]))
         .catch((e) => console.error("Error loading chembl umap", e));
     }
   }, [collections, setCollections]);
-
-  const additionalTracesFunction = React.useCallback(
-    (particles: IParticle[], get: (p: IParticle | null, axis: "x" | "y") => number) => {
-      void clusters; // Line only exists to avoid eslint-disable-next-line react-hooks/exhaustive-deps
-      return null;
-      // if (!connectByValues || connectByValues.length === 0) {
-      //   return [];
-      // }
-
-      // const selectedInstancesByConnectBy = connectByValues.map(
-      //   (connectBy) =>
-      //     new Set([...selected, hover].map((p) => p?.properties?.[connectBy]?.toString()).filter((id) => id != null))
-      // );
-
-      // const showHoverOnly: boolean = true;
-
-      // const filteredParticles = showHoverOnly
-      //   ? particles.filter((p) =>
-      //       connectByValues.every((connectBy, i) =>
-      //         selectedInstancesByConnectBy[i].has(p.properties?.[connectBy]?.toString())
-      //       )
-      //     )
-      //   : particles;
-
-      // // TOOD: This could be memoized.
-      // const groups = Object.entries(
-      //   groupByLodash<IParticle>(filteredParticles, (p) =>
-      //     connectByValues.map((connectBy) => `${connectBy}:${p.properties?.[connectBy]}`).join(", ")
-      //   )
-      // );
-
-      // const allInstances: (IParticle | null)[] = [];
-      // const allSizes: (number | null)[] = [];
-      // const allColors: (string | null)[] = [];
-
-      // const lineOpacityScaling = scaleSymlog().range([0.1, 0.8]).domain([particles.length, 0]);
-      // const hoverColor = color(/* hover?.plotData?.color ||  */ "rgb(0,0,0)")!;
-
-      // const lineColor = hoverColor.copy();
-      // lineColor.opacity = lineOpacityScaling(filteredParticles.length);
-      // const markerBorderColor = "gray";
-      // // hoverColor.opacity = 0.5;
-      // const sizeScaling = scaleLinear().range([6, 12]);
-      // // Cool plotly optimization: instead of creating many traces for lines, create a single trace with NaN separators.
-      // // See https://www.somesolvedproblems.com/2019/05/how-to-make-plotly-faster-with-many.html
-      // for (let [key, instances] of groups) {
-      //   instances = instances.filter((p) => get(p, "x") != null && get(p, "y") != null);
-      //   const instanceScaler = sizeScaling.domain([0, instances.length]);
-      //   allInstances.push(...instances);
-      //   allInstances.push(null);
-      //   allSizes.push(...instances.map((_, i) => instanceScaler(i)));
-      //   allSizes.push(null);
-      //   allColors.push(...instances.map((p, i) => (p === hover || p.selected ? "gold" : "lightgray")));
-      //   allColors.push("darkblue");
-      // }
-
-      // return [
-      //   {
-      //     type: "scattergl",
-      //     mode: "lines+markers", // TODO: Maybe use lines+markers
-      //     x: allInstances.map((p) => get(p, "x") ?? NaN),
-      //     y: allInstances.map((p) => get(p, "y") ?? NaN),
-      //     hoverinfo: "all",
-      //     marker: {
-      //       color: allColors,
-      //       size: allSizes,
-      //       line: {
-      //         color: markerBorderColor.toString(),
-      //         width: 2,
-      //       },
-      //       opacity: 1,
-      //     },
-      //     line: {
-      //       color: lineColor.toString(),
-      //       // opacity: 0.5
-      //       // shape: "spline",
-      //     },
-      //     showlegend: false,
-      //   },
-      // ] as Plotly.Data[];
-
-      // // const result: Plotly.Data[] = [];
-      // // groups.forEach(([group, instances]) => {
-      // //   // const c = color(
-      // //   //   instances.find((i) => i.plotData?.color)?.plotData?.color || "#000000"
-      // //   // )!;
-      // //   const c = color(hover?.plotData?.color || "#000000")!;
-      // //   const sizeScaling = scaleLinear()
-      // //     .domain([0, instances.length])
-      // //     .range([8, 16]);
-      // //   c.opacity = hover && instances.includes(hover) ? 0.5 : 0.3;
-      // //   if (true || instances.length > 20 || groups.length > 20) {
-      // //     result.push({
-      // //       type: "scattergl",
-      // //       mode: "lines+markers",
-      // //       x: instances.map((p) => get(p, "x")),
-      // //       y: instances.map((p) => get(p, "y")),
-      // //       name: group,
-      // //       hoverinfo: "all",
-      // //       marker: {
-      // //         color: "lightblue",
-      // //         // @ts-ignore
-      // //         size: instances.map((p, i) => sizeScaling(i)),
-      // //         line: {
-      // //           color: c.toString(),
-      // //           width: 2,
-      // //         },
-      // //         opacity: 1,
-      // //         // line: 'green'
-      // //       },
-      // //       line: {
-      // //         color: c.toString(),
-      // //         // shape: "spline",
-      // //       },
-      // //       showlegend: false,
-      // //     });
-      // //   } else {
-      // //     // const widthScaling = scaleLinear()
-      // //     //   .domain([0, instances.length])
-      // //     //   .range([1, 6]);
-      // //     // instances.slice(1).forEach((instance, i) => {
-      // //     //   const instancePair = [instances[i], instance];
-      // //     //   result.push({
-      // //     //     type: "scattergl",
-      // //     //     mode: "lines+markers",
-      // //     //     x: instancePair.map((p) => get(p, "x")),
-      // //     //     y: instancePair.map((p) => get(p, "y")),
-      // //     //     name: group,
-      // //     //     hoverinfo: "all",
-      // //     //     marker: {
-      // //     //       color: 'red',
-      // //     //       size: 10
-      // //     //     },
-      // //     //     line: {
-      // //     //       width: widthScaling(i),
-      // //     //       color: c.toString(),
-      // //     //       shape: "spline",
-      // //     //       // dash: 'dot',
-      // //     //     },
-      // //     //     // legendgroup: `${group}`,
-      // //     //     // showlegend: i === 0,
-      // //     //     showlegend: false,
-      // //     //   });
-      // //     // });
-      // //   }
-      // // });
-
-      // // return result;
-    },
-    [
-      plotOptions.connectByValues,
-      selection,
-      clusters,
-      // TODO: Hover is excluded to avoid rerendering. Find better solution.
-      // hover
-    ]
-  );
-
-  // const visibleStructures = React.useMemo<IParticle[]>(
-  //   () => (showSelectedOnly && selected.length > 0 ? mainParticles.filter((p) => selected.includes(p)) : mainParticles),
-  //   [showSelectedOnly, selected, mainParticles]
-  // );
 
   const filteredCollections = React.useMemo<ICollection[]>(() => {
     return filtered ? Object.entries(filtered).map(([name, data]) => ({ name, data })) : collections;
@@ -358,7 +202,7 @@ export function EmbeddingPage({
       <HorizontalCollapse
         label="Options"
         position="left"
-        size="col-md-2"
+        size="col-md-3"
         collapsed={optionsCollapsed}
         setCollapsed={setOptionsCollapsed}
       >
@@ -368,6 +212,7 @@ export function EmbeddingPage({
           setLoading={setLoading}
         />
         <MSOForm
+          availableObjectives={registry?.objectives}
           addCollection={(collection) => setCollections([...collections, collection])}
           selection={selection}
           loading={loading}
@@ -387,14 +232,6 @@ export function EmbeddingPage({
           loading={loading}
           setLoading={setLoading}
         />
-        {/* <RecomputeEmbeddingsForm
-          interpolatedStructures={interpolatedStructures}
-          setInterpolatedStructures={setInterpolatedStructures}
-          particles={mainParticles}
-          setParticles={setMainCollection}
-          loading={loading}
-          setLoading={setLoading}
-        /> */}
       </HorizontalCollapse>
       {/*<div className="mt-5" style={{ position: "relative", width: 0 }}>
         <div className="sticky-top" style={{ top: "20%", width: 100 }}>
@@ -423,37 +260,39 @@ export function EmbeddingPage({
         }}
       >
         <LoadingPage
-          loading={loading}
+          loading={loading && collections.length === 0}
           fallback="Please select structures for embedding"
           loadingText="Computing embedding of structures..."
         >
-          <details>
-            <summary>Projections ({enabledProjections.length})</summary>
-            <form className="form-inline" style={{ alignItems: "baseline", flexFlow: "row" }}>
-              {availableProjections.map((projection) => (
-                <div className="form-check form-check-inline">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    id={`projection${projection}Checkbox`}
-                    checked={enabledProjections.includes(projection)}
-                    onClick={(e) =>
-                      setEnabledProjections(
-                        e.currentTarget.checked
-                          ? [...enabledProjections, projection]
-                          : enabledProjections.filter((p) => p !== projection)
-                      )
-                    }
-                  />
-                  <label className="form-check-label" htmlFor={`projection${projection}Checkbox`}>
-                    {projection}
-                  </label>
-                </div>
-              ))}
-            </form>
-          </details>
           {collections.length > 0 ? (
             <>
+              <details>
+                <summary>
+                  Projections ({enabledProjections.length} out of {availableProjections.length})
+                </summary>
+                <form className="form-inline" style={{ alignItems: "baseline", flexFlow: "row" }}>
+                  {availableProjections.map((projection) => (
+                    <div className="form-check form-check-inline">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        id={`projection${projection}Checkbox`}
+                        checked={enabledProjections.includes(projection)}
+                        onChange={(e) =>
+                          setEnabledProjections(
+                            e.currentTarget.checked
+                              ? [...enabledProjections, projection]
+                              : enabledProjections.filter((p) => p !== projection)
+                          )
+                        }
+                      />
+                      <label className="form-check-label" htmlFor={`projection${projection}Checkbox`}>
+                        {projection}
+                      </label>
+                    </div>
+                  ))}
+                </form>
+              </details>
               {[
                 {
                   name: "General",
@@ -543,10 +382,10 @@ export function EmbeddingPage({
                       id={`connectBy${i}Select`}
                       label="Connect by"
                       multi={true}
-                      option={plotOptions.connectByValues}
+                      option={plotOptions.connectBy}
                       options={availableProperties}
                       setOption={(option: string[]) => {
-                        setter({ connectByValues: option.length === 0 ? null : option });
+                        setter({ connectBy: option.length === 0 ? null : option });
                       }}
                     />
                   </form>
@@ -566,6 +405,7 @@ export function EmbeddingPage({
                       title={customX && customY ? `${customX} vs. ${customY}` : "Please select two axis properties"}
                       collections={filteredCollections}
                       options={plotOptions}
+                      hover={hover}
                       setHover={setHover}
                       selected={selection}
                       setSelected={setSelection}
@@ -620,6 +460,7 @@ export function EmbeddingPage({
                           title={projection}
                           collections={filteredCollections}
                           options={plotOptions}
+                          hover={hover}
                           setHover={setHover}
                           selected={selection}
                           setSelected={setSelection}
@@ -629,145 +470,6 @@ export function EmbeddingPage({
                       </GridItemOptions>
                     )) as any
                   }
-                  {/* <GridItemOptions
-                    key="TMAP"
-                    gridOptions={{
-                      w: 6,
-                      h: 25,
-                      y: 25,
-                      x: 0,
-                    }}
-                  >
-                    <ProjectionPlot
-                      title="TMAP"
-                      markerFunction={markerFunction}
-                      transformsFunction={transformsFunction}
-                      particles={filtered || mainParticles}
-                      setHover={setHover}
-                      selected={selected}
-                      setSelected={setSelected}
-                      additionalParticles={interpolatedStructures}
-                      additionalTracesFunction={additionalTracesFunction}
-                      xAccessor="projection[tmap][0]"
-                      yAccessor="projection[tmap][1]"
-                    />
-                  </GridItemOptions>
-                  <GridItemOptions
-                    key="UMAP"
-                    gridOptions={{
-                      w: 6,
-                      h: 25,
-                      y: 25,
-                      x: 6,
-                    }}
-                  >
-                    <ProjectionPlot
-                      title="UMAP"
-                      markerFunction={markerFunction}
-                      transformsFunction={transformsFunction}
-                      particles={filtered || mainParticles}
-                      setHover={setHover}
-                      selected={selected}
-                      setSelected={setSelected}
-                      additionalParticles={interpolatedStructures}
-                      additionalTracesFunction={additionalTracesFunction}
-                      xAccessor="projection[umap][0]"
-                      yAccessor="projection[umap][1]"
-                    />
-                  </GridItemOptions>
-                  <GridItemOptions
-                    key="ChEMBL UMAP"
-                    gridOptions={{
-                      w: 6,
-                      h: 25,
-                      y: 25,
-                      x: 6,
-                    }}
-                  >
-                    <UMAPProjectionPlot
-                      umapPoints={umapPoints}
-                      colorCoding={colorCoding}
-                      markerFunction={markerFunction}
-                      transformsFunction={transformsFunction}
-                      particles={filtered || mainParticles}
-                      setHover={setHover}
-                      selected={selected}
-                      setSelected={setSelected}
-                      additionalParticles={interpolatedStructures}
-                      additionalTracesFunction={additionalTracesFunction}
-                      xAccessor="projection[chembl_umap][0]"
-                      yAccessor="projection[chembl_umap][1]"
-                    />
-                  </GridItemOptions> */}
-                  {/* <GridItemOptions
-                    key="ChEMBL TSNE"
-                    gridOptions={{
-                      w: 6,
-                      h: 25,
-                      y: 25,
-                      x: 6,
-                    }}
-                  >
-                    <ProjectionPlot
-                      title="Fixed TSNE"
-                      markerFunction={markerFunction}
-                      transformsFunction={transformsFunction}
-                      particles={filtered || particles}
-                      setHover={setHover}
-                      selected={selected}
-                      setSelected={setSelected}
-                      additionalParticles={interpolatedStructures}
-                      additionalTracesFunction={additionalTracesFunction}
-                      xAccessor="projection[chembl_tsne][0]"
-                      yAccessor="projection[chembl_tsne][1]"
-                    />
-                  </GridItemOptions>
-                  <GridItemOptions
-                    key="TSNE"
-                    gridOptions={{
-                      w: 6,
-                      h: 25,
-                      y: 50,
-                      x: 0,
-                    }}
-                  >
-                    <ProjectionPlot
-                      title="TSNE"
-                      markerFunction={markerFunction}
-                      transformsFunction={transformsFunction}
-                      particles={filtered || particles}
-                      setHover={setHover}
-                      selected={selected}
-                      setSelected={setSelected}
-                      additionalParticles={interpolatedStructures}
-                      additionalTracesFunction={additionalTracesFunction}
-                      xAccessor="projection[tsne][0]"
-                      yAccessor="projection[tsne][1]"
-                    />
-                  </GridItemOptions>
-                  <GridItemOptions
-                    key="PCA"
-                    gridOptions={{
-                      w: 6,
-                      h: 25,
-                      y: 50,
-                      x: 6,
-                    }}
-                  >
-                    <ProjectionPlot
-                      title="PCA"
-                      markerFunction={markerFunction}
-                      transformsFunction={transformsFunction}
-                      particles={filtered || particles}
-                      setHover={setHover}
-                      selected={selected}
-                      setSelected={setSelected}
-                      additionalParticles={interpolatedStructures}
-                      additionalTracesFunction={additionalTracesFunction}
-                      xAccessor="projection[pca][0]"
-                      yAccessor="projection[pca][1]"
-                    />
-                  </GridItemOptions> */}
                 </Grid>
               </div>
               <StructureCardGrid

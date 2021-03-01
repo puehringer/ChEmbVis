@@ -5,6 +5,7 @@ import { StructureCardGrid } from "./components/StructureCardGrid";
 import { StructureImage } from "./components/StructureImage";
 import { ICollection, IInterpolatedParticle } from "./interfaces";
 import { HorizontalCollapse } from "./components/HorizontalCollapse";
+import { FormWrapper } from "./components/form";
 
 export function InterpolationPage({
   structures,
@@ -18,27 +19,8 @@ export function InterpolationPage({
   setCollection(collection: ICollection<IInterpolatedParticle>): void;
 }) {
   const [optionsCollapsed, setOptionsCollapsed] = React.useState<boolean>(false);
-  const [input, setInput] = React.useState<string>(structures?.join("\n") || "");
+  const [name, setName] = React.useState<string>("Interpolated");
   const [loading, setLoading] = React.useState<boolean>(false);
-
-  React.useEffect(() => {
-    if (structures && structures.length > 0) {
-      setLoading(true);
-      interpolateStructures(structures, 20).then((data) => {
-        setCollection({
-          data,
-          name: "Interpolated",
-        });
-        setLoading(false);
-      });
-    } else {
-      setCollection({
-        data: [],
-        name: "Interpolated",
-      });
-      setLoading(false);
-    }
-  }, [structures, setCollection]);
 
   return (
     <>
@@ -49,22 +31,45 @@ export function InterpolationPage({
         collapsed={optionsCollapsed}
         setCollapsed={setOptionsCollapsed}
       >
-        <p className="lead">Use the continuous chemical space to interpolate between multiple structures.</p>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setStructures?.(input.split("\n").filter(Boolean));
+        <FormWrapper
+          open={true}
+          title="Use the continuous chemical space to interpolate between multiple structures."
+          loading={loading}
+          setLoading={setLoading}
+          onSubmit={async () => {
+            let data: IInterpolatedParticle[] = [];
+            const validStructures = structures?.filter(Boolean);
+            if (validStructures && validStructures.length > 0) {
+              setLoading(true);
+              data = await interpolateStructures(validStructures, 20);
+            }
+            setCollection({
+              data,
+              name,
+            });
+            setLoading(false);
           }}
         >
+          {/* We rely on interpolation collection to be called "Interpolated" 
+           <div className="form-group">
+            <label htmlFor="interpolationNameInput">Name</label>
+            <input
+              type="text"
+              className="form-control form-control-sm"
+              id="interpolationNameInput"
+              required
+              value={name}
+              onChange={(e) => setName(e.currentTarget.value)}
+            />
+          </div> */}
           <div className="form-group">
-            <label htmlFor="inpolationStructures">Interpolate between:</label>
+            <label htmlFor="inpolationStructures">Interpolate between</label>
             <textarea
               className="form-control form-control-sm"
               id="inpolationStructures"
               rows={3}
-              onChange={(e) => setInput(e.currentTarget.value)}
-              value={input}
+              onChange={(e) => setStructures?.(e.currentTarget.value.split("\n"))}
+              value={structures?.join("\n") || ""}
             />
           </div>
           <div className="text-right">
@@ -91,7 +96,7 @@ export function InterpolationPage({
                   ])
               : null}
           </div>
-        </form>
+        </FormWrapper>
       </HorizontalCollapse>
       <div
         // className="col-md-10"

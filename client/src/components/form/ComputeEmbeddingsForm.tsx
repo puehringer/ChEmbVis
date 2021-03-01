@@ -29,14 +29,23 @@ export const ComputeEmbeddingsForm = ({
           .forEach((i) => {
             const [smiles, ...rest] = i.split(/[;,\t]/);
             structures.push(smiles);
-            rest.forEach((v, i) => {
-              additional[i.toString()] = [...(additional[i.toString()] || []), v];
-            });
+            additional[smiles] = rest;
           });
 
-        const data = await embedStructures({
-          structures,
-          additional,
+        const data = (
+          await embedStructures({
+            structures,
+          })
+        ).map((particle) => {
+          const additionalProperties = additional[particle.structure];
+          // Inject the additional properties if there are any
+          if (additionalProperties) {
+            particle.properties = {
+              ...(particle.properties || {}),
+              ...additionalProperties.reduce((acc, cur, i) => ({ ...acc, [i]: cur }), {}),
+            };
+          }
+          return particle;
         });
         addCollection({
           data,

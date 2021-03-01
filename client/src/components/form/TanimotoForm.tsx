@@ -59,7 +59,7 @@ export const TanimotoForm = ({
       <div className="form-group">
         <label htmlFor="similarityRefStructureInput">Reference structure:</label>
         <div className="input-group input-group-sm">
-          <UseStructureInputAddon selection={selection} setValue={setSimilarityRef} />
+          <UseStructureInputAddon value={similarityRef} selection={selection} setValue={setSimilarityRef} />
           <input
             type="text"
             className="form-control form-control-sm"

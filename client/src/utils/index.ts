@@ -24,9 +24,14 @@ export function normalizeArray(
   return list.map((n) => scale(n));
 }
 
-export function toNumber(n: number | string | null | undefined, def: number = 0): number {
+export function toNumber(n: number | string | null | boolean | undefined, def: number = 0): number {
   if (n == null) {
     return def;
+  }
+  if (n === true) {
+    return 1;
+  } else if (n === false) {
+    return 0;
   }
   const v = parseFloat(n.toString());
   return isNaN(v) ? def : v;

@@ -17,4 +17,4 @@ ENV PATH /opt/conda/envs/umap_api/bin:$PATH
 RUN conda clean -tipsy
 
 WORKDIR /home/backend/
-CMD ["flask", "run", "--host=0.0.0.0", "--eager-loading"]
+CMD ["flask", "run", "--host=0.0.0.0"]
