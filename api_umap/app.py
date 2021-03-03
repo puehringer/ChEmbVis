@@ -119,7 +119,7 @@ def get_method(method):
     return model
 
 
-@app.route("/api/<method>/", methods=['GET'])
+@app.route("/api/projection/<method>/", methods=['GET'])
 def get_umap(method):
     model = get_method(method)
     smiles, embedding = get_chembl_cddd()
@@ -130,7 +130,17 @@ def get_umap(method):
     } for i in range(len(smiles))))
 
 
-@app.route("/api/<method>/", methods=['POST'])
+@app.route("/api/similarity/", methods=['POST'])
+def get_similarity():
+    payload = request.get_json()
+    smiles, embedding = get_chembl_cddd()
+    reference = np.array(payload.get('reference'), dtype=np.float32)
+    # Compute euclidian distance from ChEMBL to reference
+    distance = ((embedding - reference)**2).sum(axis=1).tolist()
+    return jsonify({ smiles[i]: distance[i] for i in range(len(smiles)) })
+
+
+@app.route("/api/projection/<method>/", methods=['POST'])
 def run_umap(method):
     model = get_method(method)
     payload = request.get_json()

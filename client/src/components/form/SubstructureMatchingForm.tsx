@@ -73,7 +73,7 @@ export const SubstructureMatchingForm = ({
         </small>
       </div>
       <div className="text-right">
-        <ButtonWithUpload loading={loading} disabled={!smarts} text="Run Search" />
+        <ButtonWithUpload loading={loading} disabled={!smarts} text="Compute Substructure Matches" />
       </div>
     </FormWrapper>
   );

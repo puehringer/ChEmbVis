@@ -9,7 +9,7 @@ from ..utils import catch_time, mol
 
 
 def compute_all_projections(data, additional):
-    all_projections = ['cddd_pca', 'cddd_tsne', 'cddd_umap', 'chembl_umap', 'chembl_pca']
+    all_projections = ['chembl_umap', 'chembl_pca', 'cddd_pca', 'hash_tmap', 'cddd_tsne', 'cddd_umap']
     successful_projections = []
     projections = {}
     for t in all_projections:
@@ -55,7 +55,7 @@ def compute_projections(data, additional, options):
         model.fit_transform = tsne_projection
         model.transform = tsne_projection
         data_key = 'smiles'
-    elif options['type'] == 'cddd_tmap':
+    elif options['type'] == 'hash_tmap':
         def model(): return None
         model.fit_transform = tmap_hash_projection
         data_key = 'smiles'

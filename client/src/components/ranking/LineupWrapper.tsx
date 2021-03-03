@@ -60,13 +60,6 @@ export const LineupWrapper = React.memo(
     );
 
     React.useEffect(() => {
-      /* const previousDataSet = new Set(previousData);
-      if(lineupRef.current && data.some((d) => previousDataSet.has(d))) {
-        console.log("SHALLOW");
-        rankingRef.current?.markDirty('all');
-        lineupRef.current?.update();
-      } else  if(!lineupRef.current || previousData !== data) {
-        */
       lineupRef.current?.destroy();
 
       const DEFAULT_HEIGHT = 18;
@@ -139,6 +132,9 @@ export const LineupWrapper = React.memo(
         if (col.type === "numbers") {
           col.renderer = "histogram"; // verticalbar is nice but slow..
           col.groupRenderer = "histogram"; // verticalbar is nice but slow..
+        }
+        if (col.type === "number") {
+          col.groupRenderer = "histogram"; // boxplot is nice but slow..
         }
       });
 
@@ -213,10 +209,9 @@ export const LineupWrapper = React.memo(
       // @ts-ignore
       lineupRef.current = lineup;
       rankingRef.current = lineup.data.getFirstRanking();
-      // }
 
       return () => {
-        // lineupRef.current?.destroy();
+        lineupRef.current?.destroy();
       };
     }, [collections, mergedData, clusters, setFilteredRef, setSelectedRef]);
 

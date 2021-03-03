@@ -80,6 +80,7 @@ export const TanimotoForm = ({
         >
           <option value="morgan">ECFP4 (Morgan Fingerprint)</option>
           <option value="daylight">Daylight (RDKit Fingerprint)</option>
+          <option value="cddd" disabled>Descriptors from CDDD (ChEMBL only)</option>
         </select>
       </div>
       <div className="text-right">

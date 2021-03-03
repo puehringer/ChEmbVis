@@ -67,3 +67,7 @@
 details > summary {
   outline: transparent !important;
 }
+
+.curve-editor > .curve-editor__svg {
+  border: 1px solid transparent !important;
+}

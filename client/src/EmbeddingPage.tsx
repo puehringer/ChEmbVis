@@ -20,17 +20,20 @@ import { Grid } from "./components/Grid";
 import { ComputeEmbeddingsForm, MSOForm, TanimotoForm, SubstructureMatchingForm } from "./components/form";
 import { getChemblUMAPEmbedding } from "./utils/api";
 import { ScatterPlot } from "./components/ScatterPlot";
+import { InterpolationForm } from "./components/form/InterpolationForm";
 
 export function EmbeddingPage({
   registry,
   collections,
   setCollections,
+  interpolationStructures,
   setInterpolationStructures,
   setActiveTab,
 }: {
   registry: IRegistry | null;
   collections: ICollection[];
   setCollections(collections: ICollection[]): void;
+  interpolationStructures: string[];
   setInterpolationStructures(structures: string[]): void;
   setActiveTab(tab: EActiveTabs): void;
 }) {
@@ -217,6 +220,16 @@ export function EmbeddingPage({
           selection={selection}
           loading={loading}
           setLoading={setLoading}
+        />
+        <InterpolationForm
+          open={false}
+          setCollection={(collection) => {
+            setCollections([...collections.filter((c) => c.name !== collection.name), collection]);
+          }}
+          loading={loading}
+          setLoading={setLoading}
+          setStructures={setInterpolationStructures}
+          structures={interpolationStructures}
         />
         <SubstructureMatchingForm
           collections={collections}

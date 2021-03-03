@@ -55,15 +55,15 @@ model_description = [{
         "desirability": [{"x": 2, "y": 1.0}, {"x": 2.5, "y": 0.95}, {"x": 3, "y": 0.8}, {"x": 5, "y": 0}],
         "weight": 100,
     },
-    # {
-    #     "name": "BACE1",
-    #     "description": "biological activity data (IC50) from ChEMBL",
-    #     "desirability": [{"x": 2, "y": 0.0}, {"x": 7, "y": 0.6}, {"x": 8, "y": 0.8}, {"x": 9, "y": 0.9}, {
-    #         "x": 10,
-    #         "y": 0.95
-    #     }, {"x": 11, "y": 1}],
-    #     "weight": 100,
-    # },
+    {
+        "name": "BACE1",
+        "description": "biological activity data (IC50) from ChEMBL",
+        "desirability": [{"x": 2, "y": 0.0}, {"x": 7, "y": 0.6}, {"x": 8, "y": 0.8}, {"x": 9, "y": 0.9}, {
+            "x": 10,
+            "y": 0.95
+        }, {"x": 11, "y": 1}],
+        "weight": 100,
+    },
     {
         "name": "EGFR",
         "description": "biological activity data (IC50) from ChEMBL",

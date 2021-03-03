@@ -4,7 +4,7 @@ import { ICollection, IParticle, IParticleSelection, IPlotOptions } from "../int
 import { PlotComponent } from "./PlotComponent";
 import lodashGet from "lodash.get";
 import { extent } from "d3-array";
-import { toExtent, toNumber } from "../utils";
+import { normalizeArray, toExtent, toNumber } from "../utils";
 import groupBy from "lodash.groupby";
 import { scaleLinear, scaleSymlog } from "d3-scale";
 import { color } from "d3-color";
@@ -131,7 +131,7 @@ export const ScatterPlot = React.memo(
             y: allInstances.map((p) => lodashGet(p, yAccessor) ?? NaN),
             name: TRAJECTORY_TRACE_NAME,
             hoverinfo: "skip",
-            opacity: hover ? (isHover ? 1.0 : 0.1) : 0.5,
+            opacity: hover ? (isHover ? 1.0 : 0.05) : 0.2,
             marker: {
               color: allColors,
               size: allSizes,
@@ -326,8 +326,8 @@ export const ScatterPlot = React.memo(
                   color,
                   cmin: colorExtent?.[0],
                   cmax: colorExtent?.[1],
-                  // opacity: opacity ? normalizeArray(opacity, [0.0, 0.7], opacityExtent) : 0.5,
-                  opacity: opacity || 0.5,
+                  opacity: opacity ? normalizeArray(opacity, [0.1, 0.9]/* , opacityExtent */) : 0.5,
+                  // opacity: opacity || 0.5,
                   symbol: i,
                   size: size ?? 5,
                   sizeref,

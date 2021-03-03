@@ -1,11 +1,12 @@
 from flask.views import MethodView
-from flask import Response
+from flask import Response, jsonify
 from flask_smorest import abort
+import requests
 from rdkit import DataStructs, Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem.Scaffolds import MurckoScaffold
 from ..utils import cached, mol
-from ..constants import blp, logger
+from ..constants import blp, logger, inference_model
 from ..schema import MoleculesImageArgsSchema, MoleculeImageArgsSchema, MoleculesSubstructureArgsSchema, MoleculesSubstructureSchema, MoleculesTanimotoSchema, MoleculesTanimotoArgsSchema
 
 
@@ -94,6 +95,10 @@ class TanimotoAPI(MethodView):
         structures = args.get('structures')
         reference = args.get('reference')
         fingerprint = args.get('fingerprint')
+
+        if fingerprint == 'cddd':
+            return jsonify({'tanimoto': requests.post('http://api_umap:5000/api/similarity/', json={'reference': inference_model.seq_to_emb([reference]).tolist()[0]}).json()})
+
 
         reference_mol = Chem.MolFromSmiles(reference)
 

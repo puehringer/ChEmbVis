@@ -10,7 +10,9 @@ dependencies:
   - rdkit::rdkit=2020.09.1.0
   - tmap::tmap
   - mhfp
-  - anaconda::scikit-learn>=0.22
+  # The EGFR and BACE1 models require < 0.22
+  - scikit-learn==0.21.3
+  # - scikit-learn>=0.22
   - numpy>=1.15.4
   - flask
   - flask-smorest
@@ -19,5 +21,6 @@ dependencies:
   - curl
   - unzip
   - tensorflow-gpu==1.15
-  - conda-forge::umap-learn>=0.5
+  # umap-learn >= 0.5 requires scikit >= 0.22
+  - conda-forge::umap-learn==0.4.6
   - requests

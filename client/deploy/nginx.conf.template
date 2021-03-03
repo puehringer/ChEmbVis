@@ -27,4 +27,8 @@ server {
     proxy_set_header Connection "";
     proxy_pass ${API_HOST};
   }
+
+  location /datasets/ {
+    return 301 ${DATASETS_URL};
+  }
 }

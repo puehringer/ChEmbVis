@@ -69,6 +69,9 @@ function App() {
               >
                 Interpolation
               </Nav.Link>
+              <Nav.Link href="/datasets/" target="_blank" active={false}>
+                Datasets
+              </Nav.Link>
             </Nav>
           </Nav>
           <Form inline>
@@ -112,6 +115,7 @@ function App() {
               registry={registry}
               collections={collections}
               setCollections={setCollections}
+              interpolationStructures={interpolationStructures}
               setInterpolationStructures={setInterpolationStructures}
               setActiveTab={setActiveTab}
             />
