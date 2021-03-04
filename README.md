@@ -1,6 +1,6 @@
 # Chemical Embedding Exploration
 
-This project is a (currently developed) application dedicated to the interactive analysis and exploration of chemical embeddings and projections. 
+This project is a (currently developed) application dedicated to the interactive analysis and exploration of chemical embeddings and projections. A live demo is available at http://cddd-explorer.pueh.xyz/. 
 
 Several submodules make up the application:
 * <a href="api/README.md"><b>api</b></a>: Main API exposing projections, <a target="_blank" href="https://github.com/jrwnter/mso">MSO</a>, rdkit, ...
