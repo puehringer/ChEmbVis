@@ -4,6 +4,7 @@ from .projection import ProjectionSchema, ProjectionArgsSchema
 from .pso import PSOArgsSchema
 from .interpolation import InterpolationArgsSchema
 from .molecule import *
+from .mmp import *
 
 
 class EmbeddingArgsSchema(ma.Schema):

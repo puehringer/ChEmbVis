@@ -56,7 +56,7 @@ export const SubstructureMatchingForm = ({
       onSubmit={computeSubstructures}
     >
       <div className="form-group">
-        <label htmlFor="smartsStructureInput">Substructure:</label>
+        <label htmlFor="smartsStructureInput">Substructure</label>
         <div className="input-group input-group-sm">
           <UseStructureInputAddon value={smarts} selection={selection} setValue={setSmarts} />
           <input

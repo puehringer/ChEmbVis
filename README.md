@@ -15,8 +15,8 @@ One reason why the API is split into several submodules is because they depend o
 
 The easiest way to run the whole application is by using docker[-compose]. To start local development, simply use `docker-compose start`. Please note that building the images might take a while, as we are using large dependencies such as `RDKit` and `Tensorflow`.
 
-**GPU Support**: By default, the GPU enabled `tensorflow-gpu` is installed and docker is expected to use the `nvidia` runtime. For this runtime, you need to have a correct NVIDIA and Docker setup including the runtime https://github.com/NVIDIA/nvidia-container-runtime. For WSL2 users, please see https://docs.nvidia.com/cuda/wsl-user-guide/index.html first. For docker and docker-compose related issues, see https://docs.docker.com/config/containers/resource_constraints/#gpu and https://docs.docker.com/compose/gpu-support/. 
+**GPU Support**: By default, the GPU enabled `tensorflow-gpu` is installed and docker-compose uses GPU capabilities for some containers (requires docker-compose 1.28+). For WSL2 users, please see https://docs.nvidia.com/cuda/wsl-user-guide/index.html first. For docker and docker-compose related issues, see https://docs.docker.com/config/containers/resource_constraints/#gpu and https://docs.docker.com/compose/gpu-support/#enabling-gpu-access-to-service-containers. 
 If you want to use pure CPU implementations, please replace all `tensorflow-gpu` occurances with `tensorflow` in the corresponding `environment.yml` files. 
-Also, you need to remove the `runtime: nvidia` entries in the `docker-compose.yml`.
+Also, you need to remove the `deploy` entries in the `docker-compose.yml`.
 
 Please note that this project is actively developed such that no optimized builds/deployments are available yet.

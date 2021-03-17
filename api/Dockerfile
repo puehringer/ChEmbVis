@@ -34,5 +34,8 @@ RUN pip install mso/
 # Add to path
 ENV PATH /home/lib:$PATH
 
+# Optionally configure Jupyter Notebook
+RUN jupyter nbextension enable --py widgetsnbextension
+
 WORKDIR /home/backend/
 CMD ["flask", "run", "--host=0.0.0.0", "--eager-loading"]

@@ -121,6 +121,20 @@ export function getTanimotoSimilarity(
   });
 }
 
+export function getMatchedMolecularPairs(options: {
+  structure: string;
+  min_variable_size?: number;
+  max_variable_size?: number;
+  min_constant_size?: number;
+  min_radius?: number;
+  min_pairs?: number;
+  substructure?: string;
+}): Promise<{
+  structures: string[];
+}> {
+  return fetchJSON("/api/mmp/", options);
+}
+
 export function getRegistry(): Promise<IRegistry> {
   return fetchRaw({
     url: "/api/registry/",

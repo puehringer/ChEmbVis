@@ -1,6 +1,7 @@
 version: "2.3"
 
 services:
+  # Main API container
   api:
     image: cddd-explorer-api:latest
     depends_on:
@@ -12,7 +13,6 @@ services:
       - ./api:/home/backend
       # Shared folder
       - ./api/_shared:/_shared
-    runtime: nvidia
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
@@ -20,13 +20,32 @@ services:
       - FLASK_APP=app.py
     ports:
       - 5000:5000
-    # As soon as Docker Desktop supports gpu capabilities...
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - capabilities:
-    #           - gpu
+    # docker-compose 1.28+ supports GPU reservation: https://docs.docker.com/compose/gpu-support/#enabling-gpu-access-to-service-containers
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities:
+              - gpu
+  # Jupyter notebook container using same image of API for testing purposes
+  api_notebook:
+    image: cddd-explorer-api:latest
+    # Enable this to launch the jupyter API instead of the 
+    command: ["jupyter", "notebook", "--notebook-dir=/_shared", "--port=8880", "--no-browser", "--ip=0.0.0.0", "--allow-root"]
+    volumes:
+      # Shared folder
+      - ./api/_shared:/_shared
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    ports:
+      - 8880:8880
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities:
+              - gpu
   api_umap:
     image: cddd-explorer-api-umap:latest
     build: api_umap
@@ -35,7 +54,6 @@ services:
       - ./api_umap:/home/backend
       # Shared folder
       - ./api_umap/_shared:/_shared
-    runtime: nvidia
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
@@ -43,6 +61,12 @@ services:
       - FLASK_APP=app.py
     ports:
       - 5001:5000
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities:
+              - gpu
   # api_tsne:
   #   image: cddd-explorer-api-tsne:latest
   #   build: api_tsne
@@ -51,14 +75,19 @@ services:
   #     - ./api_tsne:/home/backend
   #     # Shared folder
   #     - ./api/_shared:/_shared
-  #   runtime: nvidia
   #   environment:
   #     - NVIDIA_VISIBLE_DEVICES=all
   #     - NVIDIA_DRIVER_CAPABILITIES=all
   #     # - FLASK_ENV=development
   #     # - FLASK_APP=app.py
   #   ports:
-  #     - "5002:5000"
+  #     - "5002:5000"  
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - capabilities:
+  #             - gpu
   client:
     build: client
     volumes:
@@ -88,9 +117,12 @@ services:
       - 8888:8888
     volumes:
       - ./_shared:/home/jovyan/work
-    runtime: nvidia
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
-# volumes:
-#   node-modules:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities:
+              - gpu

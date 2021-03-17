@@ -1,4 +1,3 @@
-import umap
 import numpy as np
 from sklearn import manifold, decomposition
 from ..constants import logger
@@ -41,6 +40,8 @@ def compute_projections(data, additional, options):
     elif options['type'] == 'cddd_mds':
         model = manifold.MDS(n_components=2, max_iter=100, n_init=1)
     elif options['type'] == 'cddd_umap':
+        # TODO: Importing on top causes weird memory/pointer issue.
+        import umap
         model = umap.UMAP()
     elif options['type'] == 'chembl_umap':
         def model(): return None

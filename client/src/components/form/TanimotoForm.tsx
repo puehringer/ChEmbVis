@@ -57,7 +57,7 @@ export const TanimotoForm = ({
       onSubmit={computeTanimotoSimilarity}
     >
       <div className="form-group">
-        <label htmlFor="similarityRefStructureInput">Reference structure:</label>
+        <label htmlFor="similarityRefStructureInput">Reference structure</label>
         <div className="input-group input-group-sm">
           <UseStructureInputAddon value={similarityRef} selection={selection} setValue={setSimilarityRef} />
           <input
@@ -71,7 +71,7 @@ export const TanimotoForm = ({
         </div>
       </div>
       <div className="form-group">
-        <label htmlFor="similarityFingerprintInput">Fingerprint:</label>
+        <label htmlFor="similarityFingerprintInput">Fingerprint</label>
         <select
           className="form-control form-control-sm"
           id="similarityFingerprintInput"
@@ -79,8 +79,7 @@ export const TanimotoForm = ({
           onChange={(e) => setSimilarityFP(e.currentTarget.value)}
         >
           <option value="morgan">ECFP4 (Morgan Fingerprint)</option>
-          <option value="daylight">Daylight (RDKit Fingerprint)</option>
-          <option value="cddd" disabled>Descriptors from CDDD (ChEMBL only)</option>
+          <option value="cddd">Descriptors from CDDD (ChEMBL only)</option>
         </select>
       </div>
       <div className="text-right">

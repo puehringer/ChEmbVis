@@ -23,6 +23,7 @@ from .api import PSOAPI  # noqa: F401
 from .api import ProjectionAPI  # noqa: F401
 from .api import MoleculeImageAPI  # noqa: F401
 from .api import EmbeddingAPI  # noqa: F401
+from .api import MMPAPI  # noqa: F401
 
 # Why do I have to do this?
 sys.path.append('/home/backend')

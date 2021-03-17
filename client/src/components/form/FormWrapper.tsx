@@ -10,17 +10,17 @@ export const FormWrapper = ({
   children,
 }: {
   open?: boolean;
-  title: string;
+  title: React.ReactNode;
   loading: boolean;
   setLoading(loading: boolean): void;
-  onSubmit(): void;
+  onSubmit(): void | Promise<any>;
   children: React.ReactNode;
 }) => {
   const [error, setError] = React.useState<string | null>(null);
 
   return (
     <details open={open}>
-      <summary className="lead">{title}</summary>
+      <summary className="lead d-flex" style={{alignItems: 'center'}}>{title}</summary>
       <form
         onSubmit={async (e) => {
           e.preventDefault();

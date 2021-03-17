@@ -21,6 +21,7 @@ import { ComputeEmbeddingsForm, MSOForm, TanimotoForm, SubstructureMatchingForm 
 import { getChemblUMAPEmbedding } from "./utils/api";
 import { ScatterPlot } from "./components/ScatterPlot";
 import { InterpolationForm } from "./components/form/InterpolationForm";
+import { MatchedMolecularPairsForm } from "./components/form/MatchedMolecularPairsForm";
 
 export function EmbeddingPage({
   registry,
@@ -230,6 +231,12 @@ export function EmbeddingPage({
           setLoading={setLoading}
           setStructures={setInterpolationStructures}
           structures={interpolationStructures}
+        />
+        <MatchedMolecularPairsForm
+          addCollection={(collection) => setCollections([...collections, collection])}
+          loading={loading}
+          setLoading={setLoading}
+          selection={selection}
         />
         <SubstructureMatchingForm
           collections={collections}

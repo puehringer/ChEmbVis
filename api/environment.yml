@@ -24,3 +24,8 @@ dependencies:
   # umap-learn >= 0.5 requires scikit >= 0.22
   - conda-forge::umap-learn==0.4.6
   - requests
+  # Install notebook for testing purposes
+  - conda-forge::notebook
+  - conda-forge::ipywidgets
+  - pip:
+      - git+https://github.com/rdkit/mmpdb.git

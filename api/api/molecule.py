@@ -5,7 +5,7 @@ import requests
 from rdkit import DataStructs, Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem.Scaffolds import MurckoScaffold
-from ..utils import cached, mol
+from ..utils import cached, mol, parallelized
 from ..constants import blp, logger, inference_model
 from ..schema import MoleculesImageArgsSchema, MoleculeImageArgsSchema, MoleculesSubstructureArgsSchema, MoleculesSubstructureSchema, MoleculesTanimotoSchema, MoleculesTanimotoArgsSchema
 
@@ -99,7 +99,6 @@ class TanimotoAPI(MethodView):
         if fingerprint == 'cddd':
             return jsonify({'tanimoto': requests.post('http://api_umap:5000/api/similarity/', json={'reference': inference_model.seq_to_emb([reference]).tolist()[0]}).json()})
 
-
         reference_mol = Chem.MolFromSmiles(reference)
 
         if not reference_mol:
@@ -110,13 +109,15 @@ class TanimotoAPI(MethodView):
         fp_getter = mol.to_fingerprint(fingerprint)
         reference_fp = fp_getter(reference_mol)
 
-        # TODO: Use DataStructs.BulkTanimotoSimilarity instead
-        tanimoto = {}
-        for smiles in set(structures):
+        # Generate mol and fingerprint
+        def _get_fp(smiles: str):
             m = mol._string_to_mol(smiles)
-            if m:
-                current_fp = fp_getter(m)
-                tanimoto[smiles] = DataStructs.FingerprintSimilarity(
-                    reference_fp, current_fp)
-
-        return {'tanimoto': tanimoto}
+            if not m:
+                return None
+            return (smiles, fp_getter(m))
+        # Compute fingerprints
+        smiles_to_fingerprints = dict(filter(None, parallelized(_get_fp, set(structures))))
+        # Compute similarities in bulk
+        similarities = DataStructs.BulkTanimotoSimilarity(reference_fp, list(smiles_to_fingerprints.values()))
+        # Return smiles -> similarities object
+        return {'tanimoto': {s: similarities[i] for i, s in enumerate(smiles_to_fingerprints.keys())}}
