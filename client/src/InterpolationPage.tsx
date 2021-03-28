@@ -46,7 +46,7 @@ export function InterpolationPage({
               collections={[collection]}
               tableClass="main-ranking"
               structureCardProps={(structure) => ({
-                className: structure.scaffold ? "border-primary" : "",
+                className: structure.scaffold ? "border-primary" : ""
               })}
             />
           ) : null}

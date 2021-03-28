@@ -13,9 +13,8 @@ function App() {
   const [collections, setCollections] = React.useState<ICollection[]>([]);
   const [registry, setRegistry] = React.useState<IRegistry | null>(null);
   const [interpolationStructures, setInterpolationStructures] = React.useState<string[]>([
-    "NC1CC1c1ccccc1",
-    "O=C(CN1C(=O)CSc2ccc(S(=O)(=O)N3CCCCC3)cc21)NCc1cccnc1",
-    "COC(=O)[C@H]1C[C@H]2[C@@H]3CCC(=O)[C@@]3(C)CC[C@@H]2[C@@]2(C)CC/C(=NOCCN)C[C@H]12",
+    "NC1CC1C(=O)c1ccc2ccccc2c1",
+    "O=C(CN1C(=O)CSc2ccc(S(=O)C3CC3)cc21)NCc1cccnc1"
   ]);
 
   React.useEffect(() => {

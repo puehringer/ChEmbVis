@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Figure } from "react-plotly.js";
 import { ICollection, IParticle, IParticleSelection, IPlotOptions } from "../interfaces";
-import { PlotComponent } from "./PlotComponent";
+import { PlotComponent, PLOTLY_CONFIG } from "./PlotComponent";
 import lodashGet from "lodash.get";
 import { extent } from "d3-array";
 import { normalizeArray, toExtent, toNumber } from "../utils";
@@ -326,10 +326,10 @@ export const ScatterPlot = React.memo(
                   color,
                   cmin: colorExtent?.[0],
                   cmax: colorExtent?.[1],
-                  opacity: opacity ? normalizeArray(opacity, [0.1, 0.9]/* , opacityExtent */) : 0.5,
+                  opacity: opacity ? normalizeArray(opacity, [0.1, 0.9]/* , opacityExtent */) : (data.length > 10000 ? 0.2 : 0.5),
                   // opacity: opacity || 0.5,
                   symbol: i,
-                  size: size ?? 5,
+                  size: size ?? (data.length > 10000 ? 2.5 : 5),
                   sizeref,
                   sizemin: 2,
                   sizemax: 5,
@@ -427,13 +427,7 @@ export const ScatterPlot = React.memo(
             }}
             data={figureState.data}
             layout={figureState.layout}
-            config={{
-              displaylogo: false,
-              responsive: true,
-              showLink: false,
-              // showEditInChartStudio: true,
-              // plotlyServerURL: "https://chart-studio.plotly.com"
-            }}
+            config={PLOTLY_CONFIG}
             onSelected={(e) => {
               setSelected(getPointsFromEvent(e));
             }}

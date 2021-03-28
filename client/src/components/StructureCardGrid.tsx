@@ -26,6 +26,8 @@ const StructureCardGridUnwrapped = <T extends IParticle>({
   const [cardSize, setCardSize] = React.useState<"large" | "medium" | "small">("small");
   const [mode, setMode] = React.useState<"table" | "grid">("table");
 
+  const gridSize = cardSize === "large" ? "12rem" : cardSize === "medium" ? "9em" : "6em";
+
   return (
     <>
       <form className="form-inline mb-2 mt-2">
@@ -77,7 +79,7 @@ const StructureCardGridUnwrapped = <T extends IParticle>({
         </div>
       </form>
       <LineupWrapper
-        collections={collections!} // TODO REMOVE !
+        collections={collections}
         setSelected={setSelected}
         selected={selected}
         setFiltered={setFiltered}
@@ -88,9 +90,7 @@ const StructureCardGridUnwrapped = <T extends IParticle>({
         <div
           style={{
             display: mode !== "grid" ? "none" : "grid",
-            gridTemplateColumns: `repeat(auto-fill, minmax(${
-              cardSize === "large" ? "12rem" : cardSize === "medium" ? "9em" : "6em"
-            }, 1fr))`,
+            gridTemplateColumns: `repeat(auto-fill, minmax(${gridSize}, 1fr))`,
             gridAutoRows: "auto",
             gridGap: "1rem",
           }}
@@ -98,8 +98,13 @@ const StructureCardGridUnwrapped = <T extends IParticle>({
           {collections
             .map((collection) => collection.data)
             .flat()
-            .map((structures, i) => (
-              <StructureCard key={i} structure={structures} {...(structureCardProps?.(structures, i) || {})} />
+            .map((structure, i, full) => (
+              <StructureCard
+                key={i}
+                structure={structure}
+                structures={i > 0 ? [structure, full[i - 1]] : undefined}
+                {...(structureCardProps?.(structure, i) || {})}
+              />
             ))}
         </div>
       ) : null}

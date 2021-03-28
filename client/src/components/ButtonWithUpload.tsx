@@ -33,7 +33,7 @@ export function ButtonWithUpload({
         <Button variant="primary" type="submit" disabled={loading || disabled}>
           {loading ? (
             <>
-              <span className="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span> Loading...
+              <span className="spinner-grow spinner-grow-sm" role="status" aria-hidden="true" /> Loading...
             </>
           ) : (
             text

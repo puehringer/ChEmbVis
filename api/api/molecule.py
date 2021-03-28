@@ -6,7 +6,7 @@ from rdkit import DataStructs, Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem.Scaffolds import MurckoScaffold
 from ..utils import cached, mol, parallelized
-from ..constants import blp, logger, inference_model
+from ..constants import blp, logger, get_inference_model
 from ..schema import MoleculesImageArgsSchema, MoleculeImageArgsSchema, MoleculesSubstructureArgsSchema, MoleculesSubstructureSchema, MoleculesTanimotoSchema, MoleculesTanimotoArgsSchema
 
 
@@ -97,7 +97,7 @@ class TanimotoAPI(MethodView):
         fingerprint = args.get('fingerprint')
 
         if fingerprint == 'cddd':
-            return jsonify({'tanimoto': requests.post('http://api_umap:5000/api/similarity/', json={'reference': inference_model.seq_to_emb([reference]).tolist()[0]}).json()})
+            return jsonify({'tanimoto': requests.post('http://api_umap:5000/api/similarity/', json={'reference': get_inference_model().seq_to_emb([reference]).tolist()[0]}).json()})
 
         reference_mol = Chem.MolFromSmiles(reference)
 

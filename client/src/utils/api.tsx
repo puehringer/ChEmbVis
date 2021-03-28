@@ -42,7 +42,7 @@ export function runMSO(options: {
   return fetchJSON<IParticle[]>("/api/pso/", options);
 }
 
-export function embedStructures(data: { structures: string[] }): Promise<IParticle[]> {
+export function embedStructures(data: { structures: string[], include_embedding?: boolean }): Promise<IParticle[]> {
   return fetchJSON("/api/embedding/", data);
 }
 

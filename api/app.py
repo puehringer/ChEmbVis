@@ -1,23 +1,16 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 from flask import Flask, jsonify
 from werkzeug.exceptions import HTTPException
 from flask_cors import CORS
 from flask_smorest import Api
 from .constants import blp, logger
-import tensorflow as tf
 import warnings
-import os
 import logging
 import sys
-
-# One of these should prevent tensorflow logs
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-warnings.filterwarnings("ignore", message=r"Passing", category=FutureWarning)
-# logging.disable(logging.WARNING)
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
-logging.getLogger('tensorflow').setLevel(logging.FATAL)
-tf.get_logger().setLevel(logging.ERROR)
-# tf.autograph.set_verbosity(0)
-
+# For some reason we need to import tensorflow at startup, as otherwise CDDD fails with ModuleNotFoundError: No module named 'tensorflow_core.keras'.
+import tensorflow as tf
+logger.info(f'GPU available: {tf.test.is_gpu_available()}')
 from .api import InterpolationAPI  # noqa: F401
 from .api import PSOAPI  # noqa: F401
 from .api import ProjectionAPI  # noqa: F401
@@ -27,8 +20,6 @@ from .api import MMPAPI  # noqa: F401
 
 # Why do I have to do this?
 sys.path.append('/home/backend')
-
-logger.info(f'GPU available: {tf.test.is_gpu_available()}')
 
 # Create API
 app = Flask(__name__)

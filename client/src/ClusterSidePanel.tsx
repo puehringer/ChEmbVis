@@ -5,6 +5,8 @@ import { StructureCardGrid } from "./components/StructureCardGrid";
 import { StructureImage } from "./components/StructureImage";
 import { ICollection, IParticle, IParticleSelection } from "./interfaces";
 import groupByLodash from "lodash.groupby";
+import { embedStructures, getTanimotoSimilarity } from "./utils/api";
+import { PlotComponent, PLOTLY_CONFIG } from "./components/PlotComponent";
 
 export function getClustersFromParticle(particle: IParticle): string[] {
   return particle?.properties?.clusters?.split(";").filter(Boolean) || [];
@@ -39,6 +41,12 @@ export const ClusterSidePanel = React.memo(
       | null
     >(null);
     const [rankingSelection, setRankingSelection] = React.useState<IParticleSelection>(null);
+    const [heatmapData, setHeatmapData] = React.useState<
+      { data: Partial<Plotly.PlotData>; layout: Partial<Plotly.Layout> }[] | null
+    >(null);
+    const [heatmapLoading, setHeatmapLoading] = React.useState<boolean>(false);
+    const [heatmapHover, setHeatmapHover] = React.useState<string[] | null>(null);
+    const [heatmapHoverIndices, setHeatmapHoverIndices] = React.useState<number[] | null>(null);
 
     const clusterNames = Object.keys(clusters);
     const clusterNameTaken = clusterNames.includes(name);
@@ -97,19 +105,218 @@ export const ClusterSidePanel = React.memo(
             </>
           ) : null}
         </Modal>
+        <Modal
+          show={Boolean(heatmapData)}
+          onHide={() => setHeatmapData(null)}
+          size="xl"
+          dialogClassName="modal-full-width"
+        >
+          {heatmapData ? (
+            <>
+              <Modal.Header closeButton>
+                <Modal.Title>View correlation</Modal.Title>
+              </Modal.Header>
+              <Modal.Body
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <div style={{ height: 210, visibility: heatmapHover ? "visible" : "hidden", margin: "0px auto" }}>
+                  {heatmapHover ? (
+                    <div className="d-flex flex-row align-items-center" style={{ gap: 50 }}>
+                      {heatmapHover.map((structure) => (
+                        <StructureImage
+                          structure={structure}
+                          style={{
+                            width: 210,
+                          }}
+                        />
+                      ))}
+                      {heatmapHover.length > 1 ? (
+                        <StructureImage
+                          structure={heatmapHover}
+                          style={{
+                            width: 210,
+                          }}
+                        />
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+                <div className="d-flex flex-row">
+                  {heatmapData.map(({ data, layout }, i) => (
+                    <PlotComponent
+                      style={{ height: "100%", flex: 1 }}
+                      onHover={(e) => {
+                        if (e.points[0]) {
+                          setHeatmapHover(Array.from(new Set([e.points[0].x as string, e.points[0].y as string])));
+                          setHeatmapHoverIndices((e.points[0].pointIndex as any) as number[]);
+                        }
+                      }}
+                      onUnhover={() => {
+                        setHeatmapHover(null);
+                        setHeatmapHoverIndices(null);
+                      }}
+                      data={
+                        heatmapHoverIndices
+                          ? [
+                              { ...data, opacity: 0.5 },
+                              {
+                                ...data,
+                                showlegend: false,
+                                showscale: false,
+                                z: (() => {
+                                  try {
+                                    const originalZ = data.z! as number[][];
+                                    // Copy the rows and cols only of the selected range
+                                    if (
+                                      heatmapHoverIndices &&
+                                      heatmapHoverIndices.length === 2 &&
+                                      originalZ.length > 0
+                                    ) {
+                                      const emptyZ = Array(originalZ.length)
+                                        .fill(null)
+                                        .map(() => Array(originalZ[0].length).fill(null));
+
+                                      const x = heatmapHoverIndices[0],
+                                        y = heatmapHoverIndices[1];
+                                      emptyZ[x] = originalZ[x];
+                                      emptyZ.forEach((row, i) => {
+                                        row[y] = originalZ[i][y];
+                                      });
+                                      return emptyZ;
+                                    }
+                                  } catch {
+                                    return data.z;
+                                  }
+                                })(),
+                                opacity: 1,
+                              },
+                            ]
+                          : [data]
+                      }
+                      layout={{
+                        dragmode: "lasso",
+                        hovermode: "closest",
+                        autosize: true,
+                        legend: {
+                          x: 1,
+                          xanchor: "right",
+                          y: 1,
+                        },
+                        scene: {
+                          aspectmode: "data",
+                        },
+                        margin: {
+                          l: 250,
+                          r: 0,
+                          b: 0,
+                          t: 25,
+                          pad: 4,
+                        },
+                        xaxis: {
+                          // automargin: true,
+                        },
+                        yaxis: {
+                          scaleanchor: "x",
+                          visible: i === 0,
+                          autorange: "reversed",
+                          // automargin: true,
+                        },
+                        ...layout,
+                      }}
+                      config={{...PLOTLY_CONFIG, displayModeBar: false}}
+                    />
+                  ))}
+                </div>
+              </Modal.Body>
+              <Modal.Footer>
+                <Button variant="secondary" onClick={() => setHeatmapData(null)}>
+                  Close
+                </Button>
+              </Modal.Footer>
+            </>
+          ) : null}
+        </Modal>
         {selected ? (
           <>
             <p className="lead">Selection</p>
             <p>
               {selectedParticles.length} Selected{" "}
-              <button
-                type="button"
-                className="btn btn-sm btn-light float-right"
-                title="Show in table view"
-                onClick={() => setShowStructures({ type: "selection" })}
-              >
-                <i className="fas fa-fw fa-table" />
-              </button>
+              <div className="btn-group btn-group-sm ml-2 mr-2 float-right" role="group">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-light"
+                  title="Show in table view"
+                  onClick={() => setShowStructures({ type: "selection" })}
+                >
+                  <i className="fas fa-fw fa-table" />
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-light"
+                  disabled={heatmapLoading || selectedParticles.length > 50}
+                  title="Compute distances"
+                  onClick={async () => {
+                    setHeatmapLoading(true);
+                    const selectedWithEmbeddings = await embedStructures({
+                      structures: selectedParticles.map((p) => p.structure),
+                      include_embedding: true,
+                    });
+
+                    if (selectedWithEmbeddings.length > 0) {
+                      const cdddSimilarities = selectedWithEmbeddings.map((a) =>
+                        selectedWithEmbeddings.map((b) =>
+                          a.embedding!.reduce((acc, x, i) => {
+                            const y = b.embedding![i];
+                            return acc + Math.pow(x - y, 2);
+                          }, 0)
+                        )
+                      );
+
+                      const selectedStructures = selectedWithEmbeddings.map((p) => p.structure);
+                      const tanimotoSimilaritiesRaw = await Promise.all(
+                        selectedStructures.map((structure) =>
+                          getTanimotoSimilarity(selectedStructures, structure, "morgan").then(
+                            ({ tanimoto }) => tanimoto
+                          )
+                        )
+                      );
+
+                      const tanimotoSimilarities = selectedStructures.map((x, i) =>
+                        selectedStructures.map((y) => tanimotoSimilaritiesRaw[i][y] || 0)
+                      );
+
+                      setHeatmapData(
+                        [
+                          {
+                            data: { z: cdddSimilarities, reversescale: true, zmin: 0 },
+                            layout: { title: "CDDD Distance" },
+                          },
+                          {
+                            data: { z: tanimotoSimilarities, zmin: 0, zmax: 1 },
+                            layout: { title: "Morgan Similarities" },
+                          },
+                        ].map(({ data, layout }) => ({
+                          data: {
+                            x: selectedStructures,
+                            y: selectedStructures,
+                            hoverinfo: "z",
+                            colorscale: "YlGnBu",
+                            type: "heatmap",
+                            ...data,
+                          },
+                          layout,
+                        }))
+                      );
+                    }
+                    setHeatmapLoading(false);
+                  }}
+                >
+                  <i className={`fas fa-fw ${heatmapLoading ? "fa-circle-notch fa-spin" : "fa-chess-board"}`} />
+                </button>
+              </div>
             </p>
           </>
         ) : null}

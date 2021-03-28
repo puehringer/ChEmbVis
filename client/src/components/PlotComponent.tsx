@@ -4,3 +4,11 @@ import plotComponentFactory from "react-plotly.js/factory";
 import Plotly from "plotly.js-dist";
 // Solution for using plotly.js-dist with react-plotly.js: https://github.com/plotly/react-plotly.js/issues/143
 export const PlotComponent = plotComponentFactory(Plotly);
+
+export const PLOTLY_CONFIG = {
+    displaylogo: false,
+    responsive: true,
+    showLink: false,
+    // showEditInChartStudio: true,
+    // plotlyServerURL: "https://chart-studio.plotly.com"
+};

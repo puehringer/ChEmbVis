@@ -7,7 +7,7 @@ from mso.objectives.mol_functions import qed_score, heavy_atom_count, substructu
 from mso.optimizer import BasePSOptimizer
 from ..schema import PSOArgsSchema, ParticleSchema
 from ..utils import cached, catch_time, mol
-from ..constants import inference_model, blp, logger
+from ..constants import get_inference_model, blp, logger
 from ..projection import compute_all_projections
 from ..registry import models_by_name
 
@@ -20,7 +20,7 @@ def get_scoring_function_from_dict(dictionary):
     func, description, is_mol_func = models_by_name[name]
     if kwargs:
         if name == "distance score":
-            target = inference_model.seq_to_emb(kwargs["query"])
+            target = get_inference_model().seq_to_emb(kwargs["query"])
             func = partial(func, target=target)
         elif (name == "substructure match") | (name == "substructure exclusion"):
             query = Chem.MolFromSmiles(kwargs["query"])
@@ -80,7 +80,7 @@ class PSOAPI(MethodView):
             init_smiles=structure,
             num_part=num_part,
             num_swarms=num_swarms,
-            inference_model=inference_model,
+            inference_model=get_inference_model(),
             scoring_functions=scoring_functions,
             v_min=v_min,
             v_max=v_max,

@@ -30,7 +30,7 @@ export const useMousePosition = (active: boolean): { x: number; y: number } | nu
   return position;
 };
 
-export const Tooltip = ({ children }: { children: React.ReactNode }) => {
+export const Tooltip = ({ children, anchor = 'right' }: { children: React.ReactNode, anchor?: 'top' | 'right' }) => {
   const [node, setNode] = React.useState<HTMLDivElement | null>(null);
   const position = useMousePosition(Boolean(node && children));
 
@@ -38,7 +38,7 @@ export const Tooltip = ({ children }: { children: React.ReactNode }) => {
     const container = document.createElement("div");
     container.style.position = "absolute";
     container.style.pointerEvents = "none";
-    container.style.transform = "translate(10%, -50%)";
+    container.style.transform = anchor === 'right' ? "translate(10%, -50%)" : "translate(-50%, 5%)";
     container.style.zIndex = "10000";
     document.body.appendChild(container);
     setNode(container);
@@ -46,7 +46,7 @@ export const Tooltip = ({ children }: { children: React.ReactNode }) => {
     return () => {
       document.body.removeChild(container);
     };
-  }, []);
+  }, [anchor]);
 
   React.useEffect(() => {
     if (node) {

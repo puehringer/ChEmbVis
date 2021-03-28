@@ -12,16 +12,6 @@ from umap.parametric_umap import load_ParametricUMAP, ParametricUMAP
 from sklearn import manifold, decomposition
 from joblib import dump, load
 
-
-# One of these should prevent tensorflow logs
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-warnings.filterwarnings("ignore", message=r"Passing", category=FutureWarning)
-# logging.disable(logging.WARNING)
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
-logging.getLogger('tensorflow').setLevel(logging.FATAL)
-tf.get_logger().setLevel(logging.ERROR)
-# tf.autograph.set_verbosity(0)
-
 # Create API
 app = Flask(__name__)
 # Enable CORS for the whole app

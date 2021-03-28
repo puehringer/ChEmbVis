@@ -32,7 +32,7 @@ export const InterpolationForm = ({
         const validStructures = structures?.filter(Boolean);
         if (validStructures && validStructures.length > 0) {
           setLoading(true);
-          data = await interpolateStructures(validStructures, 30);
+          data = await interpolateStructures(validStructures, 100);
         }
         setCollection({
           data,

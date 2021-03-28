@@ -1,28 +1,33 @@
 import * as React from "react";
 import { getImageURL, getReducedImages } from "../utils/api";
+import { svgToImageSrc } from "./ranking/StructureImageRenderer";
 
 export const StructureImage = React.memo(
   ({
     structure,
+    image,
     ...innerProps
   }: {
     structure: string | string[];
+    image?: string;
   } & React.ImgHTMLAttributes<HTMLImageElement>) => {
-    const [src, setSrc] = React.useState<string | null>(null);
+    const [src, setSrc] = React.useState<string | undefined | null>(undefined);
 
-    const text = Array.isArray(structure)
+    const text = /* Array.isArray(structure)
       ? `Common structure of ${structure.length} structure`
-      : `Structure of ${structure}`;
+      : `Structure of ${structure}` */ '';
 
     React.useEffect(() => {
-      if (Array.isArray(structure)) {
+      if(image) {
+        setSrc(svgToImageSrc(image));
+      } else if (Array.isArray(structure)) {
         getReducedImages(structure).then((res) => {
-          setSrc(res ? `data:image/svg+xml;base64,${btoa(res)}` : null);
+          setSrc(res ? svgToImageSrc(res) : null);
         });
       } else {
         setSrc(getImageURL(structure));
       }
-    }, [structure]);
+    }, [structure, image]);
 
     return src ? (
       <img
@@ -33,6 +38,10 @@ export const StructureImage = React.memo(
         onError={(e) => (e.currentTarget.style.visibility = "hidden")}
         {...(innerProps || {})}
       />
-    ) : null;
+    ) : (src === undefined ? (
+      <div style={{ ...(innerProps?.style || {}), display: "flex", justifyContent: "center" }}>
+        <span className="spinner-grow spinner-grow-sm" role="status" aria-hidden="true" />
+      </div>
+    ) : null);
   }
 );

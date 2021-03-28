@@ -3,6 +3,7 @@ export interface IParticle {
   collection: string;
   index?: number;
   structure: string;
+  images?: string[];
   embedding?: number[];
   properties?: {
     clusters?: string | null | undefined;

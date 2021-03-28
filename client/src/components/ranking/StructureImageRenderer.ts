@@ -15,6 +15,14 @@ import { abortAble } from "lineupengine";
 const template =
   '<div style="background-size: contain; background-position: center; background-repeat: no-repeat;"></div>';
 
+export function svgToImageSrc(svg: string): string {
+  return `data:image/svg+xml;base64,${btoa(svg)}`;
+}
+
+export function svgToCSSBackground(svg: string): string {
+  return `url('${svgToImageSrc(svg)}')`;
+}
+
 export class StructureImageRenderer implements ICellRendererFactory {
   readonly title: string = "Chemical Structure";
 
@@ -27,6 +35,10 @@ export class StructureImageRenderer implements ICellRendererFactory {
       template,
       update: (n: HTMLImageElement, d: IDataRow) => {
         if (!renderMissingDOM(n, col, d)) {
+          if(d.v.image) {
+            n.style.backgroundImage = svgToCSSBackground(d.v.image);
+            return;
+          }
           const value = col.getValue(d)!;
           // Load aysnc to avoid triggering
           return abortAble(new Promise((resolve) => setTimeout(() => resolve(value), 500))).then((image) => {
@@ -47,7 +59,7 @@ export class StructureImageRenderer implements ICellRendererFactory {
       update: (n: HTMLImageElement, group: IOrderedGroup) => {
         context.tasks.groupRows(col, group, "StructureImageRendererGroup", (rows) => {
           return abortAble(getReducedImages(Array.from(rows.map((row) => col.getLabel(row))))).then((res: any) => {
-            n.style.backgroundImage = res ? `url('data:image/svg+xml;base64,${btoa(res)}')` : "";
+            n.style.backgroundImage = res ? svgToCSSBackground(res) : "";
           });
         });
       },

@@ -46,25 +46,31 @@ def _get_svg_from_drawer(drawer):
     return drawer.GetDrawingText().replace("<?xml version='1.0' encoding='iso-8859-1'?>\n", '')
 
 
-def _draw_mol_to_svg(mol, substructure=None):
+def _draw_mol_to_svg(mol, substructure=None, highlight_atoms=None, highlight_bonds=None, highlight_atom_colors=None, highlight_bond_colors=None):
     drawer = _get_svg_drawer()
     drawer.DrawMolecule(mol,
-                        highlightAtoms=mol.GetSubstructMatch(substructure) if substructure is not None else None)
+                        highlightAtoms=highlight_atoms if highlight_atoms else (mol.GetSubstructMatch(substructure) if substructure is not None else None),
+                        highlightBonds=highlight_bonds,
+                        highlightAtomColors=highlight_atom_colors,
+                        highlightBondColors=highlight_bond_colors)
     return _get_svg_from_drawer(drawer)
 
 
-def mol_to_svg(mol, substructure=None):
+def mol_to_svg(mol, substructure=None, highlight_atoms=None, highlight_bonds=None, highlight_atom_colors=None, highlight_bond_colors=None):
     mol = _string_to_mol(mol)
     substructure = _string_to_mol(substructure)
     if not mol:
         return None
-    return _draw_mol_to_svg(mol, substructure=substructure)
+    return _draw_mol_to_svg(mol, substructure=substructure, highlight_atoms=highlight_atoms, highlight_bonds=highlight_bonds, highlight_atom_colors=highlight_atom_colors, highlight_bond_colors=highlight_bond_colors)
+
+
+def mols_to_mcs(mols):
+    mols = list(filter(None, [_string_to_mol(mol) for mol in mols]))
+    return rdFMCS.FindMCS(mols, matchValences=True, ringMatchesRingOnly=True, completeRingsOnly=True)
 
 
 def mols_to_mcs_svg(mols):
-    mols = list(filter(None, [_string_to_mol(mol) for mol in mols]))
-    # TODO: Mols might be null
-    res = rdFMCS.FindMCS(mols, matchValences=True, ringMatchesRingOnly=True)
+    res = mols_to_mcs(mols)
     return _draw_mol_to_svg(res.queryMol)
 
 
@@ -92,5 +98,5 @@ def to_fingerprint(fingerprint):
 
 def mols_to_fingerprints(mols, fingerprint):
     fp_getter = to_fingerprint(fingerprint)
-    mols = [_string_to_mol(mol) for mol in mols]
+    mols = [_string_to_mol(mol) or _string_to_mol('*') for mol in mols]
     return [fp_getter(m) for m in mols]

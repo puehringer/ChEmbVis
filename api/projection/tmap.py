@@ -9,7 +9,7 @@ def tmap_hash_projection(mols):
     all_mols = [_string_to_mol(mol) for mol in mols]
     mols = list(filter(None, all_mols))
 
-    if len(mols) < 2: 
+    if len(mols) <= 2: 
         return None
 
     # The number of permutations used by the MinHashing algorithm
@@ -29,16 +29,9 @@ def tmap_hash_projection(mols):
     lf.batch_add(fingerprints)
     lf.index()
 
-    nns_per_mol = lf.batch_query(
-        [tmap.VectorUint(enc.encode_mol(mols[0]))], 10)
-
     # Get the coordinates
     x, y, s, t, graph_props = tmap.layout_from_lsh_forest(lf)
-    x, y, s, t = np.array(x), np.array(y), np.array(s), np.array(t)
-
-    for nns in nns_per_mol:
-        x_nns = x[nns]
-        y_nns = y[nns]
+    x, y, s, t = np.nan_to_num(np.array(x)), np.nan_to_num(np.array(y)), np.array(s), np.array(t)
 
     i = 0
     res = []

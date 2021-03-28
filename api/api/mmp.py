@@ -23,7 +23,7 @@ class MMPAPI(MethodView):
         substructure = args.get('substructure')
 
         command_str = f"mmpdb transform --smiles '{structure}' --min-variable-size {min_variable_size} --max-variable-size {max_variable_size} --min-constant-size {min_constant_size} --min-radius {min_radius} --min-pairs {min_pairs} --substructure '{substructure}' /_shared/chembl.mmpdb"
-        logger.info(f'Invoking {command_str}')
+        logger.info(f"Invoking {command_str}")
 
         command = Popen(command_str, stdout=PIPE, stderr=PIPE, shell=True)
         errors = list([line.decode() for line in command.stderr])
@@ -34,7 +34,7 @@ class MMPAPI(MethodView):
         # Hack: parse the second argument (the smiles) for each line
         structures = list(set([line.strip().split('\t')[1]
                                for line in output[1:]]))
-
+        logger.info(f"mmpdb found {structures} structures")
         return {
             'structures': structures
         }
