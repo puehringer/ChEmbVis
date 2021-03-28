@@ -67,6 +67,7 @@ services:
           devices:
             - capabilities:
               - gpu
+  # t-SNE API is not used right now.
   # api_tsne:
   #   image: cddd-explorer-api-tsne:latest
   #   build: api_tsne
@@ -74,7 +75,7 @@ services:
   #     # Code
   #     - ./api_tsne:/home/backend
   #     # Shared folder
-  #     - ./api/_shared:/_shared
+  #     - ./api_tsne/_shared:/_shared
   #   environment:
   #     - NVIDIA_VISIBLE_DEVICES=all
   #     - NVIDIA_DRIVER_CAPABILITIES=all
@@ -102,7 +103,7 @@ services:
     image: cddd-explorer-client-prod:latest
     build:
       context: ./client
-      dockerfile: ./deploy/Dockerfile_prod
+      dockerfile: ./deploy/prod.Dockerfile
     environment:
       - NODE_ENV=production
       - API_HOST=http://api:5000
@@ -116,7 +117,7 @@ services:
     ports:
       - 8888:8888
     volumes:
-      - ./_shared:/home/jovyan/work
+      - ./notebook/_shared:/home/jovyan/work
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all

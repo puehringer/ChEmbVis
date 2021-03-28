@@ -35,8 +35,8 @@ export class StructureImageRenderer implements ICellRendererFactory {
       template,
       update: (n: HTMLImageElement, d: IDataRow) => {
         if (!renderMissingDOM(n, col, d)) {
-          if(d.v.image) {
-            n.style.backgroundImage = svgToCSSBackground(d.v.image);
+          if(d.v.images?.[0]) {
+            n.style.backgroundImage = svgToCSSBackground(d.v.images[0]);
             return;
           }
           const value = col.getValue(d)!;

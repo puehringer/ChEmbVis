@@ -7,5 +7,4 @@ class InterpolationArgsSchema(ma.Schema):
 
 
 class InterpolatedParticleSchema(ParticleSchema):
-    image = ma.fields.String(required=False)
-    image1 = ma.fields.String(required=False)
+    images = ma.fields.List(ma.fields.String(required=False), required=False)

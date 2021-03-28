@@ -15,8 +15,15 @@ One reason why the API is split into several submodules is because they depend o
 
 The easiest way to run the whole application is by using docker[-compose]. To start local development, simply use `docker-compose start`. Please note that building the images might take a while, as we are using large dependencies such as `RDKit` and `Tensorflow`.
 
-**GPU Support**: By default, the GPU enabled `tensorflow-gpu` is installed and docker-compose uses GPU capabilities for some containers (requires docker-compose 1.28+). For WSL2 users, please see https://docs.nvidia.com/cuda/wsl-user-guide/index.html first. For docker and docker-compose related issues, see https://docs.docker.com/config/containers/resource_constraints/#gpu and https://docs.docker.com/compose/gpu-support/#enabling-gpu-access-to-service-containers. 
-If you want to use pure CPU implementations, please replace all `tensorflow-gpu` occurances with `tensorflow` in the corresponding `environment.yml` files. 
-Also, you need to remove the `deploy` entries in the `docker-compose.yml`.
+When the building is done, the frontend is available at http://localhost:3000 and the backend at http://localhost:5000, with a Swagger API documentation available at http://localhost:5000/api/spec. 
 
 Please note that this project is actively developed such that no optimized builds/deployments are available yet.
+
+### _shared Data
+Due to the size of the parametric models, the contents of the `_shared` folder are not provided in this repository. Each package has a `_shared` folder which contains such data. For easy setup, please download the entire shared data and extract it into the repository: https://drive.google.com/file/d/1F-QFxKd8A1rnXmyOAsfixF_CCUQYtmwY/view?usp=sharing
+Otherwise, take a look at the individual repositories for further details.
+
+### GPU Support: 
+By default, the GPU enabled `tensorflow-gpu` is installed and docker-compose uses GPU capabilities for some containers (requires docker-compose 1.28+). For WSL2 users, please see https://docs.nvidia.com/cuda/wsl-user-guide/index.html first. For docker and docker-compose related issues, see https://docs.docker.com/config/containers/resource_constraints/#gpu and https://docs.docker.com/compose/gpu-support/#enabling-gpu-access-to-service-containers. 
+If you want to use pure CPU implementations, please replace all `tensorflow-gpu` occurances with `tensorflow` in the corresponding `environment.yml` files. 
+Also, you need to remove the `deploy` entries in the `docker-compose.yml`.

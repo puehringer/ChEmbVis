@@ -8,7 +8,7 @@ COPY package.json package-lock.json[t] ./
 RUN npm install
 # Add app
 COPY . ./
-# Run the dev server
+# Run the build
 RUN npm run build
 
 # NGINX production environment
