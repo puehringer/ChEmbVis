@@ -8,13 +8,14 @@ import { normalizeArray, toExtent, toNumber } from "../utils";
 import groupBy from "lodash.groupby";
 import { scaleLinear, scaleSymlog } from "d3-scale";
 import { color } from "d3-color";
+import { useSyncedRef } from "../utils/hooks";
 
 const TRAJECTORY_TRACE_NAME = "Trajectories";
 
 export interface IProjectionPlotProps {
   title: string;
   collections: ICollection[];
-  xAccessor: string;
+  xAccessor: string | (string | number)[];
   yAccessor: string;
   options: IPlotOptions;
   hover: IParticle | null;
@@ -42,6 +43,7 @@ export const ScatterPlot = React.memo(
 
     // Use the most up-to-date hover if possible.
     const hover = innerHover || debouncedHover;
+    const setHoverRef = useSyncedRef(setHover);
 
     React.useEffect(() => {
       const traces: Partial<Plotly.PlotData>[] = ((() => {
@@ -310,23 +312,53 @@ export const ScatterPlot = React.memo(
 
               const groupBy = plotOptions?.groupBy || options.groupBy;
               const colorBy = plotOptions?.colorBy || options.colorBy;
-              const groups = groupBy ? data.map((p) => p.properties?.[groupBy]?.toString() || "N/A") : undefined;
+              let groups = groupBy ? data.map((p) => p.properties?.[groupBy]?.toString() || "N/A") : undefined;
+
+              let x = data.map((p) => lodashGet(p, xAccessor));
+              let y = data.map((p) => lodashGet(p, yAccessor));
+              let indices = data.map((data, i) => [i, data.index!]);
+
+              if (y?.[0] && Array.isArray(y[0])) {
+                const extendedParticles = y.map((ys, i) => ({
+                  x: Array.from(new Array(ys.length).keys()),
+                  y: ys,
+                  indices: new Array(ys.length).fill(null).map(() => [i, data[i].index!]),
+                  color: Array.isArray(color) ? new Array(ys.length).fill(color[i]) : color,
+                  opacity: Array.isArray(opacity) ? new Array(ys.length).fill(opacity[i]) : opacity,
+                  size: Array.isArray(size) ? new Array(ys.length).fill(size[i]) : size,
+                  groups: Array.isArray(groups) ? new Array(ys.length).fill(groups[i]) : groups,
+                }));
+
+                x = extendedParticles.map((p) => p.x).flat();
+                y = extendedParticles.map((p) => p.y).flat();
+                indices = extendedParticles.map((p) => p.indices).flat();
+                color = Array.isArray(color) ? extendedParticles.map((p) => p.color).flat() : color;
+                opacity = Array.isArray(opacity) ? extendedParticles.map((p) => p.opacity).flat() : opacity;
+                size = Array.isArray(size) ? extendedParticles.map((p) => p.size).flat() : size;
+                groups = Array.isArray(groups) ? extendedParticles.map((p) => p.groups).flat() : groups;
+              }
 
               return {
                 ...existingData,
-                x: data.map((p) => lodashGet(p, xAccessor)),
-                y: data.map((p) => lodashGet(p, yAccessor)),
+                x,
+                y,
                 text: data.map((p) => p.structure),
                 hoverinfo: "none",
                 name,
                 type: "scattergl",
                 mode: "markers",
+                // Custom data has the [index of particle in filtered collection, index of particle in global collection] mapping
+                customdata: indices,
                 marker: {
                   ...(existingData.marker || {}),
                   color,
                   cmin: colorExtent?.[0],
                   cmax: colorExtent?.[1],
-                  opacity: opacity ? normalizeArray(opacity, [0.1, 0.9]/* , opacityExtent */) : (data.length > 10000 ? 0.2 : 0.5),
+                  opacity: opacity
+                    ? normalizeArray(opacity, [0.1, 0.9] /* , opacityExtent */)
+                    : data.length > 10000
+                    ? 0.2
+                    : 0.5,
                   // opacity: opacity || 0.5,
                   symbol: i,
                   size: size ?? (data.length > 10000 ? 2.5 : 5),
@@ -377,32 +409,49 @@ export const ScatterPlot = React.memo(
         figureState
           ? {
               ...figureState,
-              data: figureState.data.map((data) => ({
-                ...data,
-                selectedpoints: selected?.[data.name!]?.map((s) => s.index!),
-              })),
+              data: figureState.data.map((data) => {
+                const selectedIndices = new Set(selected?.[data.name!]?.map((s) => s.index!) || []);
+                let selectedpoints: undefined | number[] = undefined;
+                if (selectedIndices.size > 0) {
+                  selectedpoints = [];
+                  ((data as Partial<Plotly.PlotData>).customdata as [number, number][]).forEach(
+                    ([_, particleIndex], pointIndex) => {
+                      if (selectedIndices.has(particleIndex)) {
+                        selectedpoints!.push(pointIndex);
+                      }
+                    }
+                  );
+                }
+                return {
+                  ...data,
+                  selectedpoints,
+                };
+              }),
             }
           : null
       );
     }, [selected]);
 
     React.useEffect(() => {
-      const timeout = setTimeout(() => setHover(innerHover), 50);
+      const timeout = setTimeout(() => setHoverRef.current?.(innerHover), 50);
 
       return () => {
         clearTimeout(timeout);
       };
-    }, [innerHover, setHover]);
+    }, [innerHover, setHoverRef]);
 
     const getPointsFromEvent = (e: Readonly<Plotly.PlotSelectionEvent> | null): IParticleSelection => {
       const points = e?.points || [];
+      const handledIndices = new Set<number>();
       return points.length > 0
         ? points.reduce<{ [key: string]: IParticle[] }>((acc, p) => {
             // @ts-ignore
             const color = (p?.fullData as Plotly.Data)?.marker?.color;
             const collection = collections?.[p.curveNumber];
-            const particle: IParticle | null = collection?.data?.[p.pointIndex];
-            if (particle) {
+            const [pointIndex, particleIndex] = (p.customdata as any) as [number, number];
+            const particle: IParticle | null = collection?.data?.[pointIndex];
+            if (particle && !handledIndices.has(pointIndex)) {
+              handledIndices.add(pointIndex);
               particle.plotData = {
                 ...particle.plotData,
                 color: typeof color === "string" ? color : undefined,

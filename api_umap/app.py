@@ -140,3 +140,10 @@ def run_umap(method):
 
     data = np.array(data)
     return jsonify(model.transform(data).tolist())
+
+
+@app.route("/api/projection/pca/components", methods=['GET'])
+def get_pca_components():
+    model = get_pca_model()
+    logger.info(model.components_.shape)
+    return jsonify(model.components_.tolist())

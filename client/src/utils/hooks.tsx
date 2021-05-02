@@ -2,7 +2,7 @@ import throttle from "lodash.throttle";
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 
-export function useSyncedRef<T>(value: T) {
+export function useSyncedRef<T>(value: T): React.MutableRefObject<T> {
   const valueRef = React.useRef<T>(value);
   valueRef.current = value;
   return valueRef;

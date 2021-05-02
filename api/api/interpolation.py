@@ -1,11 +1,59 @@
 from flask.views import MethodView
 import numpy as np
-from ..schema import InterpolationArgsSchema, InterpolatedParticleSchema
+from scipy.stats import ortho_group
+from rdkit import Chem
+from rdkit.Chem import TemplateAlign
+from ..schema import InterpolationArgsSchema, InterpolatedParticleSchema, NeighborhoodSamplingArgsSchema
 from ..utils import cached, mol, logger
 from ..constants import get_inference_model, blp
 from ..projection import compute_all_projections
-from rdkit import Chem
-from rdkit.Chem import TemplateAlign
+from ..projection.chembl_umap import get_projected_pca_components
+
+
+@blp.route('/sampling/', methods=['POST'])
+@blp.arguments(NeighborhoodSamplingArgsSchema, location='json')
+@blp.response(200, InterpolatedParticleSchema(many=True))
+@cached
+def neighborhood_sampling(args):
+    samples = args.get('samples')
+    structure = args.get('structure')
+    # Compute embedding for structure
+    embedded_structure = get_inference_model().seq_to_emb([structure])[0]
+    test_structure = get_inference_model().seq_to_emb(['C1CCCCC1'])[0]
+    
+    dim = len(embedded_structure)
+    # TODO: Find proper vectors and duplication
+    vectors = get_projected_pca_components() * 10
+    # vectors = ortho_group.rvs(dim)[:2] * 50
+    # vectors = np.array([np.ones((512,)), np.zeros((512,))]) / samples
+    # vectors = (2 * np.random.rand(2, 512) - 1) / samples
+
+    # Create grid ranges
+    scaler = np.arange(0, samples) - samples // 2
+    # Create pairs of grid coordinates
+    pairs = np.array(np.meshgrid(scaler, scaler)).T.reshape(-1, 2)
+    # Swap X and Y axis as [[-5, -5], [-5, -4], ...] is currently in pairs
+    pairs = pairs[:, [1, 0]]
+    # Invert the Y axis to get a proper "grid", i.e. [[-5, 5], [-4, 5], ...]
+    pairs[:, 1] *= -1
+    # Create grid embedding values: 20x2 @ 2x512 = 20x512
+    result = ((pairs / samples) @ vectors) + embedded_structure
+
+    # Create grid. TODO .reshape(samples, samples)
+    smiles = get_inference_model().emb_to_seq(result)
+    # Ensure that center structure is the reference structure.
+    # This is required as the decode step is not 100% correct.
+    smiles[len(smiles) // 2] = structure
+
+    structures = [{
+        'structure': structure,
+        'embedding': result[i].tolist(),
+        'properties': {**mol.compute_properties(structure), "test": pairs[i].tolist() }
+    } for i, structure in enumerate(smiles)]
+
+    projections, projection = compute_all_projections({'smiles': list(map(lambda s: s['structure'], structures)), 'embedding': list(map(lambda s: s['embedding'], structures))}, None)
+
+    return [{**o, 'projection': {t: projection[t][0][i] for t in projections}} for i, o in enumerate(structures)]
 
 
 @blp.route('/interpolation/')

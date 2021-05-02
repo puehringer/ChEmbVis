@@ -125,7 +125,7 @@ export const LineupWrapper = React.memo(
       propertiesColumns.filter((col) => col.label !== "Clusters").forEach((col) => b.column(col));
 
       // Change the default renderer of the embedding column
-      // b.deriveColumns("embedding");
+      b.deriveColumns("embedding");
       // @ts-ignore
       (b.columns as IColumnDesc[]).forEach((col) => {
         // Patch the default renderer for all numbers columns

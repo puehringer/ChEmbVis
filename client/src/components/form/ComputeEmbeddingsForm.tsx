@@ -35,6 +35,7 @@ export const ComputeEmbeddingsForm = ({
         const data = (
           await embedStructures({
             structures,
+            include_embedding: true
           })
         ).map((particle) => {
           const additionalProperties = additional[particle.structure];

@@ -1,12 +1,19 @@
 import time
 from ..constants import logger
+import inspect
+
+def _is_class_method(f):
+    spec = inspect.getargspec(f)
+    return spec.args and spec.args[0] == 'self'
 
 _waiting = set()
 _cache = {}
 
 def cached(f):
+    is_class_method = _is_class_method(f)
     def wrapper(*args, **kw):
-        key = f'{id(f)}_{str(args[1:])}_{str(kw)}'
+        # TODO: Change args[1:] to args[0:] to include all parameters
+        key = f'{id(f)}_{str(args[1:] if is_class_method else args[0:])}_{str(kw)}'
         if key not in _cache:
             # TODO: Find better way using Promise-like syntax
             # If it is already computing, wait for it...

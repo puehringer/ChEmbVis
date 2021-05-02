@@ -10,7 +10,7 @@ import { FileUploadModal } from "./components/FileUploadModal";
 function App() {
   const [importFileModalShow, setImportFileModalShow] = React.useState<boolean>(false);
   const [activeTab, setActiveTab] = React.useState<EActiveTabs>(EActiveTabs.EMBEDDING);
-  const [collections, setCollections] = React.useState<ICollection[]>([]);
+  const [collections, _setCollections] = React.useState<ICollection[]>([]);
   const [registry, setRegistry] = React.useState<IRegistry | null>(null);
   const [interpolationStructures, setInterpolationStructures] = React.useState<string[]>([
     "NC1CC1C(=O)c1ccc2ccccc2c1",
@@ -26,13 +26,18 @@ function App() {
   }, []);
 
   React.useEffect(() => {
+  }, [collections]);
+
+  const setCollections = React.useCallback((collections: ICollection[]) => {
     collections.forEach((collection) =>
       collection.data.forEach((p, i) => {
         p.index = i;
         p.collection = collection.name;
       })
     );
-  }, [collections]);
+
+    _setCollections(collections);
+  }, [_setCollections]);
 
   const interpolationCollection = React.useMemo(
     () => collections.find((c) => c.name === "Interpolated") as ICollection<IInterpolatedParticle> | undefined,
@@ -41,9 +46,9 @@ function App() {
 
   const setInterpolationCollection = React.useCallback(
     (collection: ICollection<IInterpolatedParticle>) => {
-      setCollections((collections) => [...collections.filter((c) => c.name !== "Interpolated"), collection]);
+      _setCollections((collections) => [...collections.filter((c) => c.name !== "Interpolated"), collection]);
     },
-    [setCollections]
+    [_setCollections]
   );
 
   return (

@@ -18,7 +18,7 @@ class ParticleSchema(ma.Schema):
 
 from .projection import ProjectionSchema, ProjectionArgsSchema
 from .pso import PSOArgsSchema
-from .interpolation import InterpolationArgsSchema, InterpolatedParticleSchema
+from .interpolation import InterpolationArgsSchema, InterpolatedParticleSchema, NeighborhoodSamplingArgsSchema
 from .molecule import *
 from .mmp import *
 

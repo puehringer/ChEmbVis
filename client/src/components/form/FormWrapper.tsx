@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Alert } from "react-bootstrap";
+import { DetailsSummaryWrapper } from "./DetailsSummaryWrapper";
 
 export const FormWrapper = ({
   open = false,
@@ -19,8 +20,7 @@ export const FormWrapper = ({
   const [error, setError] = React.useState<string | null>(null);
 
   return (
-    <details open={open}>
-      <summary className="lead d-flex" style={{alignItems: 'center'}}>{title}</summary>
+    <DetailsSummaryWrapper open={open} title={title}>
       <form
         onSubmit={async (e) => {
           e.preventDefault();
@@ -48,6 +48,7 @@ export const FormWrapper = ({
         ) : null}
         {children}
       </form>
-    </details>
+
+    </DetailsSummaryWrapper>
   );
 };

@@ -3,7 +3,7 @@ from flask import Response, jsonify
 from flask_smorest import abort
 import requests
 from rdkit import DataStructs, Chem
-from rdkit.Chem import AllChem
+from rdkit.Chem import AllChem, TemplateAlign
 from rdkit.Chem.Scaffolds import MurckoScaffold
 from ..utils import cached, mol, parallelized
 from ..constants import blp, logger, get_inference_model
@@ -16,7 +16,18 @@ class MoleculeImageAPI(MethodView):
     @blp.arguments(MoleculeImageArgsSchema, location='query')
     @cached
     def get(self, args):
-        svg = mol.mol_to_svg(args.get('structure'), args.get('substructure'))
+        substructure = args.get('substructure')
+        align_mol = mol._string_to_mol(args.get('align'))
+        structure_mol = mol._string_to_mol(args.get('structure'))
+        if align_mol and structure_mol:
+            TemplateAlign.rdDepictor.Compute2DCoords(structure_mol)
+            # Find the maximum common substructure for aligning purposes
+            mcs = mol.mols_to_mcs([structure_mol, align_mol]).queryMol
+            TemplateAlign.rdDepictor.Compute2DCoords(mcs)
+            TemplateAlign.AlignMolToTemplate2D(structure_mol, mcs, clearConfs=True)
+            # Enable this to show substructore highlights of alignment
+            # substructure = mcs
+        svg = mol.mol_to_svg(structure_mol, substructure)
         if not svg:
             abort(404)
         return Response(svg, mimetype='image/svg+xml')

@@ -6,6 +6,7 @@ from ..schema import EmbeddingArgsSchema, ParticleSchema
 from ..utils import cached, mol, chunkify, catch_time, parallelized
 from ..constants import get_inference_model, blp, logger
 from ..projection import compute_all_projections
+from ..projection.chembl_umap import get_projected_umap, get_projected_pca
 
 
 @blp.route('/embedding/')
@@ -13,14 +14,12 @@ class EmbeddingAPI(MethodView):
 
     @cached
     def get(self):
-        # "Lazy" load the chembl umap 
-        from ..projection.chembl_umap import projected_umap, projected_pca
         # TODO: Move to different API
-        if not projected_umap or not projected_pca:
+        if not get_projected_umap() or not get_projected_pca():
             abort(404)
-        structures = list(map(lambda p: p.get('structure'), projected_umap))
-        umap_projections = list(map(lambda p: p.get('projection'), projected_umap))
-        pca_projections = list(map(lambda p: p.get('projection'), projected_pca))
+        structures = list(map(lambda p: p.get('structure'), get_projected_umap()))
+        umap_projections = list(map(lambda p: p.get('projection'), get_projected_umap()))
+        pca_projections = list(map(lambda p: p.get('projection'), get_projected_pca()))
         properties = list(parallelized(mol.compute_properties, structures))
 
         return jsonify([{

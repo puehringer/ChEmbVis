@@ -4,6 +4,7 @@ import marshmallow as ma
 class MoleculeImageArgsSchema(ma.Schema):
     structure = ma.fields.String(required=True)
     substructure = ma.fields.String(required=False)
+    align = ma.fields.String(required=False)
 
 
 class MoleculesImageArgsSchema(ma.Schema):

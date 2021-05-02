@@ -5,10 +5,12 @@ import { svgToImageSrc } from "./ranking/StructureImageRenderer";
 export const StructureImage = React.memo(
   ({
     structure,
+    align,
     image,
     ...innerProps
   }: {
     structure: string | string[];
+    align?: string;
     image?: string;
   } & React.ImgHTMLAttributes<HTMLImageElement>) => {
     const [src, setSrc] = React.useState<string | undefined | null>(undefined);
@@ -25,9 +27,9 @@ export const StructureImage = React.memo(
           setSrc(res ? svgToImageSrc(res) : null);
         });
       } else {
-        setSrc(getImageURL(structure));
+        setSrc(getImageURL(structure, null, align));
       }
-    }, [structure, image]);
+    }, [structure, image, align]);
 
     return src ? (
       <img

@@ -60,9 +60,11 @@ export function interpolateStructures(structures: string[], maxSamples?: number)
   });
 }
 
-export function getImageURL(structure: string, substructure: string | null = null): string {
+export function getImageURL(structure: string, substructure: string | null = null, align: string | null = null): string {
   return `/api/image/?structure=${encodeURIComponent(structure)}${
     substructure ? `&substructure=${encodeURIComponent(substructure)}` : ""
+  }${
+    align ? `&align=${encodeURIComponent(align)}` : ""
   }`;
 }
 
@@ -118,6 +120,16 @@ export function getTanimotoSimilarity(
     structures,
     reference,
     fingerprint,
+  });
+}
+
+export function getNeighborSamples(
+  structure: string,
+  samples: number
+): Promise<IInterpolatedParticle[]> {
+  return fetchJSON("/api/sampling/", {
+    structure,
+    samples
   });
 }
 

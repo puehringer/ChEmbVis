@@ -86,7 +86,7 @@ export const MSOForm = ({
               >
                 <option value="">Choose...</option>
                 {availableObjectives.map((o) => (
-                  <option value={o.name}>{o.name}</option>
+                  <option key={o.name} value={o.name}>{o.name}</option>
                 ))}
               </select>
               <input
@@ -94,6 +94,7 @@ export const MSOForm = ({
                 className="form-control-plaintext form-control-sm"
                 required
                 value={objectives.length}
+                onChange={() => null}
                 min={1}
                 style={{
                   flex: "0 0 1px",

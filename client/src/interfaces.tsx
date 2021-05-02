@@ -33,6 +33,7 @@ export interface IPlotOptions {
 export interface ICollection<T extends IParticle = IParticle> {
   data: T[];
   name: string;
+  type?: 'neighborhoodSampling';
   plotOptions?: Partial<IPlotOptions>;
 }
 

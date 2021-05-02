@@ -22,6 +22,8 @@ import { getChemblUMAPEmbedding } from "./utils/api";
 import { ScatterPlot } from "./components/ScatterPlot";
 import { InterpolationForm } from "./components/form/InterpolationForm";
 import { MatchedMolecularPairsForm } from "./components/form/MatchedMolecularPairsForm";
+import { NeighborSamplingForm } from "./components/form/NeighborSamplingForm";
+import { DetailsSummaryWrapper } from "./components/form/DetailsSummaryWrapper";
 
 export function EmbeddingPage({
   registry,
@@ -42,6 +44,7 @@ export function EmbeddingPage({
     collections,
   ]);
 
+  const [visibleNeighborhoodSamplings, setVisibleNeighborhoodSamplings] = React.useState<IParticle[] | null>(null);
   const [loading, setLoading] = React.useState<boolean>(false);
   const [clusterCollapsed, setClusterCollapsed] = React.useState<boolean>(true);
   const [optionsCollapsed, setOptionsCollapsed] = React.useState<boolean>(false);
@@ -190,6 +193,28 @@ export function EmbeddingPage({
       : collections;
   }, [collections, showSelectedOnly, selection]);
 
+  const latentSpaceCollections = React.useMemo(() => {
+    return filteredCollections.map((c) => {
+      const data = c.data
+        .filter((d) => d.embedding)
+        .map((d) => {
+          return d.embedding!.map((y, x) => ({
+            ...d,
+            properties: {
+              ...(d.properties || {}),
+              latentX: x,
+              latentY: y,
+            },
+          }));
+        })
+        .flat();
+      return {
+        ...c,
+        data,
+      };
+    });
+  }, [filteredCollections]);
+
   return (
     <>
       <Tooltip>
@@ -210,6 +235,53 @@ export function EmbeddingPage({
         collapsed={optionsCollapsed}
         setCollapsed={setOptionsCollapsed}
       >
+        {collections.length > 0 ? (
+          <DetailsSummaryWrapper open={true} title="Available Collections">
+            <>
+              {collections.map((c) => (
+                <div className="d-flex align-items-center mb-1">
+                  <span className="text-truncate mr-auto" title={c.name}>
+                    {c.name}
+                  </span>
+                  <div className="btn-group btn-group-sm ml-2 mr-2" role="group">
+                    {/* <button
+                      type="button"
+                      className="btn btn-light"
+                      title={c.disabled ? 'Enable collection' : 'Disable collection'}
+                      onClick={() => {
+                        setCollections(collections.map((collection) => c === collection ? ({ ...c, disabled: !c.disabled}) : c))
+                      }}
+                    >
+                      <i className="fas fa-fw fa-table" />
+                    </button> */}
+                    {c.type === "neighborhoodSampling" ? (
+                      <button
+                        type="button"
+                        className="btn btn-light"
+                        title="Show neighborhood grid"
+                        onClick={() => {
+                          setVisibleNeighborhoodSamplings(c.data);
+                        }}
+                      >
+                        <i className="fas fa-fw fa-th" />
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="btn btn-danger"
+                      title="Delete collection"
+                      onClick={() => {
+                        setCollections(collections.filter((collection) => c !== collection));
+                      }}
+                    >
+                      <i className="fas fa-fw fa-times" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </>
+          </DetailsSummaryWrapper>
+        ) : null}
         <ComputeEmbeddingsForm
           addCollection={(collection) => setCollections([...collections, collection])}
           loading={loading}
@@ -246,6 +318,15 @@ export function EmbeddingPage({
           setLoading={setLoading}
         />
         <TanimotoForm
+          collections={collections}
+          setCollections={setCollections}
+          selection={selection}
+          loading={loading}
+          setLoading={setLoading}
+        />
+        <NeighborSamplingForm
+          visible={visibleNeighborhoodSamplings}
+          setVisible={setVisibleNeighborhoodSamplings}
           collections={collections}
           setCollections={setCollections}
           selection={selection}
@@ -419,6 +500,7 @@ export function EmbeddingPage({
                       w: 12,
                       h: 25,
                       y: 0,
+                      x: 0,
                     }}
                   >
                     <ScatterPlot
@@ -465,6 +547,37 @@ export function EmbeddingPage({
                       </div>
                     </ScatterPlot>
                   </GridItemOptions>
+                  <GridItemOptions
+                    key="Embedding"
+                    gridOptions={{
+                      w: 12,
+                      h: 25,
+                      y: 25,
+                      x: 0,
+                    }}
+                  >
+                    <ScatterPlot
+                      title="Latent Space"
+                      collections={latentSpaceCollections}
+                      options={plotOptions}
+                      hover={hover}
+                      setHover={(hover) => {
+                        setHover(
+                          hover
+                            ? collections
+                                .find((c) => c.name === hover.collection)
+                                ?.data.find((d) => d.index === hover.index) || null
+                            : null
+                        );
+                      }}
+                      selected={selection}
+                      setSelected={(selected) => {
+                        setSelection(selected);
+                      }}
+                      xAccessor={`properties[latentX]`}
+                      yAccessor={`properties[latentY]`}
+                    />
+                  </GridItemOptions>
                   {
                     (enabledProjections.length > 0 ? enabledProjections : availableProjections).map((projection, i) => (
                       <GridItemOptions
@@ -472,7 +585,7 @@ export function EmbeddingPage({
                         gridOptions={{
                           w: 6,
                           h: 25,
-                          y: 25 + Math.floor(i / 2) * 25,
+                          y: 50 + Math.floor(i / 2) * 25,
                           x: i % 2 === 0 ? 0 : 6,
                         }}
                       >

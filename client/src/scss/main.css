@@ -42,7 +42,7 @@
 
 /* Lineup styles */
 .lineup-wrapper {
-  height: 80vh;
+  min-height: 80vh;
   /* overflow: auto; */
 }
 
