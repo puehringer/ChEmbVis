@@ -1,4 +1,5 @@
-import { StringColumn, IDataRow, IStringFilter, equal, Column } from "lineupjs";
+import { StringColumn, IDataRow, IStringFilter, Column } from "lineupjs";
+import { isEqual } from "lodash";
 
 export interface IStructureFilter extends IStringFilter {
   filter: string;
@@ -21,11 +22,11 @@ export class StructureImageColumn extends StringColumn {
   }
 
   getFilter() {
-    return this.structureFilter;
+    return this.structureFilter!;
   }
 
   setFilter(filter: IStructureFilter | null) {
-    if (equal(filter, this.structureFilter)) {
+    if (isEqual(filter, this.structureFilter)) {
       return;
     }
 
@@ -41,7 +42,7 @@ export class StructureImageColumn extends StringColumn {
   }
 
   setAlign(structure: string | null): void {
-    if (equal(structure, this.align)) {
+    if (isEqual(structure, this.align)) {
       return;
     }
     

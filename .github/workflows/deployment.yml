@@ -1,0 +1,107 @@
+name: AWS Deployment
+
+on:
+  push:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io # Registry for the Docker images
+  AWS_REGION: eu-central-1 # preferred AWS region, e.g. us-west-1
+  ECS_CLUSTER: default-cluster # Amazon ECS cluster name
+  ECS_SERVICE: chembvis # Amazon ECS service name
+  ECS_TASK_DEFINITION: .aws/task-definition.json # path to your Amazon ECS task definition file, e.g. .aws/task-definition.json
+
+jobs:
+  aws-deployment:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Web
+        id: meta-web
+        uses: docker/metadata-action@v3
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}_web
+
+      - name: Build and push Web image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./client
+          file: ./client/deploy/prod.Dockerfile
+          push: true
+          tags: ${{ steps.meta-web.outputs.tags }}
+          labels: ${{ steps.meta-web.outputs.labels }}
+
+      - name: Extract metadata (tags, labels) for API-slim
+        id: meta-api-slim
+        uses: docker/metadata-action@v3
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}_api_slim
+
+      - name: Build and push API-slim image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./api
+          file: ./api/slim.Dockerfile
+          push: true
+          tags: ${{ steps.meta-api-slim.outputs.tags }}
+          labels: ${{ steps.meta-api-slim.outputs.labels }}
+
+      # - name: Extract metadata (tags, labels) for API
+      #   id: meta-api
+      #   uses: docker/metadata-action@v3
+      #   with:
+      #     images: ${{ env.REGISTRY }}/${{ github.repository }}_api
+
+      # - name: Build and push API image
+      #   uses: docker/build-push-action@v2
+      #   with:
+      #     context: api
+      #     push: true
+      #     tags: ${{ steps.meta-api.outputs.tags }}
+      #     labels: ${{ steps.meta-api.outputs.labels }}
+
+      # Deploy a new task definition in the https://docs.github.com/en/actions/deployment/deploying-to-amazon-elastic-container-service
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Render Amazon ECS task definition for Web
+        id: render-web-container
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ env.ECS_TASK_DEFINITION }}
+          container-name: cddd-explorer-client
+          image: ${{ steps.meta-web.outputs.tags }}
+
+      - name: Modify Amazon ECS task definition for API
+        id: render-api-container
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-web-container.outputs.task-definition }}
+          container-name: cddd-explorer-api
+          image: ${{ steps.meta-api-slim.outputs.tags }}
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-api-container.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          # wait-for-service-stability: true

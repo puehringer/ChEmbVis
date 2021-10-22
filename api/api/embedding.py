@@ -1,7 +1,5 @@
-from typing import Dict, List
 from flask import jsonify
 from flask_smorest import abort
-from cddd.preprocessing import preprocess_smiles
 import sklearn.neighbors as neighbors
 from sklearn.metrics import pairwise_distances
 import numpy as np
@@ -52,7 +50,7 @@ def compute_embedding(args):
         with catch_time(f'Filtering {len(structures)} structures'):
             # structures = [s for s in structures if mol.is_valid_mol(s)]
             # Keep a preprocessed -> original map to send back the original structure too
-            structure_map = {s: key for (key, s) in map(lambda s: (s, preprocess_smiles(s)), structures) if mol.is_valid_mol(s)}
+            structure_map = {s: key for (key, s) in map(lambda s: (s, mol.preprocess_smiles(s)), structures) if mol.is_valid_mol(s)}
             structures = list(structure_map.keys())
 
         computed_embeddings = {}
@@ -108,23 +106,26 @@ def compute_embedding(args):
                 }
 
         for key, embedding in embedding_models.items():
-            if embedding.can_encode:
-                with catch_time(f'Computing {key} embedding for {len(structures)} structures'):
-                    computed_embedding = embedding.encode(structures if not embedding.use_raw_smiles else [structure_map[smi] for smi in structures])
+            try:
+                if embedding.can_encode:
+                    with catch_time(f'Computing {key} embedding for {len(structures)} structures'):
+                        computed_embedding = embedding.encode(structures if not embedding.use_raw_smiles else [structure_map[smi] for smi in structures])
 
-                with catch_time(f'Computing pairwise distances for {key} (single job)'):
-                    distances = pairwise_distances(computed_embedding, metric=embedding.distance_metric, n_jobs=1)
+                    with catch_time(f'Computing pairwise distances for {key} (single job)'):
+                        distances = pairwise_distances(computed_embedding, metric=embedding.distance_metric, n_jobs=1)
 
-                # with catch_time(f'Computing pairwise distances for {key} (multiple jobs)'):
-                #     distances = pairwise_distances(computed_embedding, metric=embedding.distance_metric)
+                    # with catch_time(f'Computing pairwise distances for {key} (multiple jobs)'):
+                    #     distances = pairwise_distances(computed_embedding, metric=embedding.distance_metric)
 
-                with catch_time(f'Computing knn for {key}'):
-                    compute_nearest_neighbors(distances, metric='precomputed', key=key)
+                    with catch_time(f'Computing knn for {key}'):
+                        compute_nearest_neighbors(distances, metric='precomputed', key=key)
 
-                with catch_time(f'Computing clusters for {key}'):
-                    compute_clusters(distances.astype(np.float64), metric='precomputed', key=key)
+                    with catch_time(f'Computing clusters for {key}'):
+                        compute_clusters(distances.astype(np.float64), metric='precomputed', key=key)
 
-                computed_embeddings[key] = computed_embedding.tolist()
+                    computed_embeddings[key] = computed_embedding.tolist()
+            except Exception:
+                logger.exception(f'Error computing embedding for {key}')
 
         # from mso.objectives import emb_functions, mol_functions
         # egfr_scores = emb_functions.egfr_score_512(computed_embeddings['cddd'])

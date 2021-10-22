@@ -1,6 +1,7 @@
-# Chemical Embedding Exploration
+![deployment](https://github.com/puehringer/ChEmbVis/actions/workflows/deployment.yml/badge.svg)
+# ChEmbVis - Chemical Embedding Visualization
 
-This project is a (currently developed) application dedicated to the interactive analysis and exploration of chemical embeddings and projections. A live demo is available at http://cddd-explorer.pueh.xyz/. 
+This project is a (currently developed) application dedicated to the interactive analysis and exploration of chemical embeddings and projections. A live demo is available at https://chembvis.pueh.xyz/. 
 
 Several submodules make up the application:
 * <a href="api/README.md"><b>api</b></a>: Main API exposing projections, <a target="_blank" href="https://github.com/jrwnter/mso">MSO</a>, rdkit, ...

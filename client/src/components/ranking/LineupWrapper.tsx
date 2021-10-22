@@ -4,7 +4,6 @@ import LineUp, {
   buildRanking,
   buildStringColumn,
   Column,
-  equal,
   IColumnDesc,
   LocalDataProvider,
   Taggle,
@@ -62,7 +61,7 @@ export const LineupWrapper = ({
   // Reduce the collections to an array of objects with a dataset property
   const mergedData = React.useMemo(
     () =>
-      collections.reduce<(IParticle & { _dataset: string; _particle: IParticle })[]>((acc, cur) => {
+      collections.reduce<(IParticle & { _dataset: string; _particle: IParticle } & Record<string, unknown>)[]>((acc, cur) => {
         cur.data.forEach((d) =>
           acc.push({
             ...d,
@@ -125,7 +124,7 @@ export const LineupWrapper = ({
     // https://github.com/lineupjs/lineupjs/blob/develop/src/provider/utils.ts#L268-L269
     const mergedDataProperties = mergedData.map(({ properties = {} }) => properties);
     const propertyWithMostEntries =
-      mergedDataProperties.reduce<object | null>((acc, cur) => {
+      mergedDataProperties.reduce<Record<string, unknown> | null>((acc, cur) => {
         return !acc || Object.keys(acc!).length < Object.keys(cur).length ? cur : acc;
       }, null) || {};
 
@@ -133,7 +132,7 @@ export const LineupWrapper = ({
       (key) => Object.getOwnPropertyDescriptor(propertyWithMostEntries, key)!["get"]
     );
     const eagerColumns = Object.keys(propertyWithMostEntries).filter((key) => !lazyColumns.includes(key));
-    console.log(propertyWithMostEntries, lazyColumns, eagerColumns);
+    // console.log(propertyWithMostEntries, lazyColumns, eagerColumns);
     // The properties are a nested object, so we derive it using the builder and then inject the 'properties.' in the column.
     const propertiesBuilder = builder([propertyWithMostEntries, ...mergedDataProperties]).deriveColumns();
     // lazyColumns.forEach((col) =>
@@ -255,7 +254,7 @@ export const LineupWrapper = ({
     lineup.data.on(LocalDataProvider.EVENT_ORDER_CHANGED, async (oldSelection, newSelection) => {
       if (newSelection.length === mergedData.length) {
         setFilteredRef?.current?.(null);
-      } else if (!equal(oldSelection.slice().sort(), newSelection.slice().sort())) {
+      } else if (!isEqual(oldSelection.slice().sort(), newSelection.slice().sort())) {
         // If we actually filtered the table
         setFilteredRef?.current?.(rowsToSelection(await lineup.data.view(newSelection)));
       }

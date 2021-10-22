@@ -52,7 +52,7 @@ def get_vae_model():
     global _vae_model
     if not _vae_model:
         from chemvae.vae_utils import VAEUtils
-        from chemvae import mol_utils as mu
+        # from chemvae import mol_utils as mu
         _vae_model = VAEUtils(directory='/_shared/p_chemvae/zinc_properties')
     return _vae_model
 

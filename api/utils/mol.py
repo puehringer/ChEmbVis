@@ -5,6 +5,10 @@ from rdkit.ML.Descriptors import MoleculeDescriptors
 from rdkit.Chem.AtomPairs.Sheridan import GetBPFingerprint, GetBTFingerprint
 from rdkit.Chem.Pharm2D import Generate, Gobbi_Pharm2D
 from rdkit.Chem import MolToSmiles
+import numpy as np
+from rdkit.Chem.SaltRemover import SaltRemover
+from rdkit import Chem
+from rdkit.Chem import Descriptors
 
 def is_valid_mol(mol):
     return _string_to_mol(mol) is not None
@@ -182,3 +186,94 @@ def mols_to_fingerprints(mols, fingerprint: str):
     fp_getter = to_fingerprint(fingerprint)
     mols = [_string_to_mol(mol) or _string_to_mol('*') for mol in mols]
     return [fp_getter(m) for m in mols]
+
+# Preprocessing pipeline from https://github.com/jrwnter/cddd/blob/master/cddd/preprocessing.py
+REMOVER = SaltRemover()
+ORGANIC_ATOM_SET = set([5, 6, 7, 8, 9, 15, 16, 17, 35, 53])
+
+def randomize_smile(sml):
+    """Function that randomizes a SMILES sequnce. This was adapted from the
+    implemetation of E. Bjerrum 2017, SMILES Enumeration as Data Augmentation
+    for Neural Network Modeling of Molecules.
+    Args:
+        sml: SMILES sequnce to randomize.
+    Return:
+        randomized SMILES sequnce or
+        nan if SMILES is not interpretable.
+    """
+    try:
+        m = Chem.MolFromSmiles(sml)
+        ans = list(range(m.GetNumAtoms()))
+        np.random.shuffle(ans)
+        nm = Chem.RenumberAtoms(m, ans)
+        return Chem.MolToSmiles(nm, canonical=False)
+    except:
+        return float('nan')
+
+def keep_largest_fragment(sml):
+    """Function that returns the SMILES sequence of the largest fragment for a input
+    SMILES sequnce.
+    Args:
+        sml: SMILES sequence.
+    Returns:
+        canonical SMILES sequnce of the largest fragment.
+    """
+    mol_frags = Chem.GetMolFrags(Chem.MolFromSmiles(sml), asMols=True)
+    largest_mol = None
+    largest_mol_size = 0
+    for mol in mol_frags:
+        size = mol.GetNumAtoms()
+        if size > largest_mol_size:
+            largest_mol = mol
+            largest_mol_size = size
+    return Chem.MolToSmiles(largest_mol)
+
+def remove_salt_stereo(sml, remover):
+    """Function that strips salts and removes stereochemistry information from a SMILES.
+    Args:
+        sml: SMILES sequence.
+        remover: RDKit's SaltRemover object.
+    Returns:
+        canonical SMILES sequnce without salts and stereochemistry information.
+    """
+    try:
+        sml = Chem.MolToSmiles(remover.StripMol(Chem.MolFromSmiles(sml),
+                                                dontRemoveEverything=True),
+                               isomericSmiles=False)
+        if "." in sml:
+            sml = keep_largest_fragment(sml)
+    except:
+        sml = np.float("nan")
+    return(sml)
+
+def filter_smiles(sml):
+    try:
+        m = Chem.MolFromSmiles(sml)
+        logp = Descriptors.MolLogP(m)
+        mol_weight = Descriptors.MolWt(m)
+        num_heavy_atoms = Descriptors.HeavyAtomCount(m)
+        atom_num_list = [atom.GetAtomicNum() for atom in m.GetAtoms()]
+        is_organic = set(atom_num_list) <= ORGANIC_ATOM_SET
+        if ((logp > -5) & (logp < 7) &
+            (mol_weight > 12) & (mol_weight < 600) &
+            (num_heavy_atoms > 3) & (num_heavy_atoms < 50) &
+            is_organic ):
+            return Chem.MolToSmiles(m)
+        else:
+            return float('nan')
+    except:
+        return float('nan')
+
+def preprocess_smiles(sml):
+    """Function that preprocesses a SMILES string such that it is in the same format as
+    the translation model was trained on. It removes salts and stereochemistry from the
+    SMILES sequnce. If the sequnce correspond to an inorganic molecule or cannot be
+    interpreted by RDKit nan is returned.
+    Args:
+        sml: SMILES sequence.
+    Returns:
+        preprocessd SMILES sequnces or nan.
+    """
+    new_sml = remove_salt_stereo(sml, REMOVER)
+    new_sml = filter_smiles(new_sml)
+    return new_sml

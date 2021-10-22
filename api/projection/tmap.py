@@ -1,11 +1,11 @@
 import numpy as np
-import tmap
 from mhfp.encoder import MHFPEncoder
 from ..utils.mol import _string_to_mol
 from ..utils import logger
 
 
 def tmap_hash_projection(mols):
+    import tmap
     all_mols = [_string_to_mol(mol) for mol in mols]
     mols = list(filter(None, all_mols))
 
@@ -47,6 +47,7 @@ def tmap_hash_projection(mols):
 
 
 def tmap_projection(data):
+    import tmap
     n = len(data)
     edge_list = []
 

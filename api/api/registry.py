@@ -1,6 +1,5 @@
 from flask.views import MethodView
 from flask import jsonify
-from ..utils import cached
 from ..constants import blp
 from ..registry import model_description
 

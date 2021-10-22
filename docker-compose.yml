@@ -27,6 +27,34 @@ services:
           devices:
             - capabilities:
               - gpu
+  # Main API container
+  api_slim:
+    image: cddd-explorer-api:latest
+    depends_on:
+      - api_umap
+      # - api_tsne
+    build:
+      context: ./api
+      dockerfile: ./slim.Dockerfile
+    volumes:
+      # Code
+      - ./api:/home/backend
+      # Shared folder
+      - ./api/_shared:/_shared
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - FLASK_ENV=development
+      - FLASK_APP=app.py
+    ports:
+      - 5000:5000
+    # docker-compose 1.28+ supports GPU reservation: https://docs.docker.com/compose/gpu-support/#enabling-gpu-access-to-service-containers
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities:
+              - gpu
   # Jupyter notebook container using same image of API for testing purposes
   api_notebook:
     image: cddd-explorer-api:latest

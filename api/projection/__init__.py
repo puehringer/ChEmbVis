@@ -5,8 +5,8 @@ import base64
 from abc import ABC, abstractmethod
 import requests
 import json
-from sklearn import decomposition, manifold
-from sklearn.manifold.t_sne import trustworthiness
+from sklearn import decomposition
+from sklearn.manifold import trustworthiness
 from ..constants import logger
 from .tmap import tmap_projection, tmap_hash_projection
 from .chembl_tsne import tsne_projection

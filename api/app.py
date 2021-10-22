@@ -1,14 +1,16 @@
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 from flask import Flask, jsonify
 from werkzeug.exceptions import HTTPException
 from flask_cors import CORS
 from flask_smorest import Api
 from .constants import blp, logger
 import sys
-# For some reason we need to import tensorflow at startup, as otherwise CDDD fails with ModuleNotFoundError: No module named 'tensorflow_core.keras'.
-import tensorflow as tf
-logger.info(f'GPU available: {tf.test.is_gpu_available()}')
+try:
+    # For some reason we need to import tensorflow at startup, as otherwise CDDD fails with ModuleNotFoundError: No module named 'tensorflow_core.keras'.
+    import tensorflow as tf
+    if tf.config.experimental.list_physical_devices('GPU'):
+        logger.info('GPU available')
+except Exception:
+    logger.info('Tensorflow could not be imported')
 from .api import *  # noqa: F401
 
 # Why do I have to do this?

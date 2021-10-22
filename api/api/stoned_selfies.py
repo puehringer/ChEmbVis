@@ -1,9 +1,6 @@
-import time
 import selfies
 import rdkit
-import random
 import numpy as np
-import random
 from rdkit import Chem
 from selfies import encoder, decoder
 from rdkit.Chem import MolFromSmiles as smi2mol
@@ -12,12 +9,9 @@ from rdkit.DataStructs.cDataStructs import TanimotoSimilarity
 from rdkit.Chem import Mol
 from rdkit.Chem.AtomPairs.Sheridan import GetBPFingerprint, GetBTFingerprint
 from rdkit.Chem.Pharm2D import Generate, Gobbi_Pharm2D
-from rdkit.Chem import Draw
-
 from rdkit.Chem import MolToSmiles as mol2smi
 from rdkit import RDLogger
-from flask import jsonify
-from ..utils import cached, mol, logger, catch_time
+from ..utils import cached, catch_time
 from ..constants import blp
 from ..schema import StonedSelfiesArgsSchema, StonedSelfiesSchema
 

@@ -32,14 +32,13 @@ export const ComputeEmbeddingsForm = ({
           [key: string]: string | number | boolean;
         }>(cdddInput, {
           header: true,
-          trimHeaders: true,
           skipEmptyLines: true,
           dynamicTyping: true,
           transformHeader: (header) => {
-            if(['smiles', 'structure', 'structures'].includes(header.toLocaleLowerCase())) {
+            if(['smiles', 'structure', 'structures'].includes(header.trim().toLocaleLowerCase())) {
               return 'smiles';
             }
-            return header;
+            return header.trim();
           }
         });
 

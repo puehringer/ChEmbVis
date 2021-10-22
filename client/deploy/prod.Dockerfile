@@ -1,6 +1,6 @@
 # https://mherman.org/blog/dockerizing-a-react-app/
 # Build in container
-FROM node:12-alpine as build
+FROM node:12-alpine AS build
 RUN mkdir /frontend
 WORKDIR /frontend
 # Install app dependencies

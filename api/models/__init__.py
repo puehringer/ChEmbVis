@@ -4,7 +4,6 @@ from ..utils import chunkify, ensure_np_array, mol
 from ..constants import logger, get_cddd_model, get_vae_model, get_molbert_model, get_graph_model
 import itertools
 import numpy as np
-from fcd import get_predictions, load_ref_model
 
 
 class Embedding(ABC):
@@ -81,6 +80,7 @@ class GraphEmbedding(Embedding):
 class ChemNetEmbedding(Embedding):
     @property
     def model(self):
+        from fcd import  load_ref_model
         return load_ref_model()
 
     @property
@@ -88,6 +88,7 @@ class ChemNetEmbedding(Embedding):
         return 'euclidean'
 
     def encode(self, smiles: List[str]) -> np.ndarray:
+        from fcd import get_predictions
         return get_predictions(self.model, smiles)
 
 
