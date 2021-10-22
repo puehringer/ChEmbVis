@@ -9,6 +9,7 @@ import groupBy from "lodash.groupby";
 import { scaleLinear, scaleSymlog } from "d3-scale";
 import { color } from "d3-color";
 import { useSyncedRef } from "../utils/hooks";
+import { DEFAULT_COLORWAY } from "../utils/constants";
 
 const TRAJECTORY_TRACE_NAME = "Trajectories";
 
@@ -17,7 +18,7 @@ export interface IProjectionPlotProps {
   collections: ICollection[];
   xAccessor: string | (string | number)[];
   yAccessor: string;
-  options: IPlotOptions;
+  options: Partial<IPlotOptions>;
   hover: IParticle | null;
   setHover(particle: IParticle | null): void;
   selected: IParticleSelection;
@@ -47,7 +48,6 @@ export const ScatterPlot = React.memo(
 
     React.useEffect(() => {
       const traces: Partial<Plotly.PlotData>[] = ((() => {
-        // void clusters; // Line only exists to avoid eslint-disable-next-line react-hooks/exhaustive-deps
         // return null;
         const connectBy = options.connectBy;
         if (!connectBy || connectBy.length === 0 || (hover == null && !selected)) {
@@ -68,7 +68,7 @@ export const ScatterPlot = React.memo(
         }
 
         return [
-          (hover ? [collections.find((c) => c.data.includes(hover)), [hover]] : [undefined, undefined]) as [
+          (hover ? [collections.find((c) => c.name === hover.collection), [hover]] : [undefined, undefined]) as [
             ICollection | undefined,
             IParticle[] | undefined
           ],
@@ -80,26 +80,27 @@ export const ScatterPlot = React.memo(
           const particles = c!.data;
           const isHover = i === 0;
 
-          const selectedInstancesByConnectBy = connectBy.map(
-            (c) => new Set(selection.map((p) => p?.properties?.[c]?.toString()).filter((id) => id != null))
-          );
+          const knnHoverFields = connectBy.filter((v) => v.startsWith('knn=')).map((v) => v.split("="));
+          const isKNNHover = knnHoverFields.length > 0;
 
-          const filteredParticles = particles.filter((p) =>
-            connectBy.every((connectBy, i) =>
-              selectedInstancesByConnectBy[i].has(p.properties?.[connectBy]?.toString())
-            )
-          );
-
+          let filteredParticles: IParticle[] | null = null;
+          if(isKNNHover) {
+            filteredParticles = particles;
+          } else {
+            const selectedInstancesByConnectBy = connectBy.map(
+              (c) => new Set(selection.map((p) => p?.properties?.[c]?.toString()).filter((id) => id != null))
+            );
+  
+            filteredParticles = particles.filter((p) =>
+              connectBy.every((connectBy, i) =>
+                selectedInstancesByConnectBy[i].has(p.properties?.[connectBy]?.toString())
+              )
+            );
+          }
+  
           if (filteredParticles.length === 0) {
             return null;
           }
-
-          // TOOD: This could be memoized.
-          const groups = Object.entries(
-            groupBy(filteredParticles, (p) =>
-              connectBy.map((connectBy) => `${connectBy}:${p.properties?.[connectBy]}`).join(", ")
-            )
-          );
 
           const allInstances: (IParticle | null)[] = [];
           const allSizes: (number | null)[] = [];
@@ -110,9 +111,28 @@ export const ScatterPlot = React.memo(
 
           const lineColor = hoverColor.copy();
           lineColor.opacity = lineOpacityScaling(filteredParticles.length);
-          const markerBorderColor = "gray";
+          // const markerBorderColor = "gray";
           hoverColor.opacity = 0.5;
           const sizeScaling = scaleLinear().range([6, 12]);
+
+          // TOOD: This could be memoized.
+          let groups: [string, IParticle[]][] | null = null;
+          if(isKNNHover) {
+            groups = knnHoverFields.map((key) => [
+              key[1],
+              [hover!, ...(hover?.nearest_neighbors?.[key[1]]?.knn_particles
+                .slice(0, +key[2])
+                .reverse()
+                .filter(Boolean) || [])],
+            ]);
+          } else {
+            groups = Object.entries(
+              groupBy(filteredParticles, (p) =>
+                connectBy.map((connectBy) => `${connectBy}:${p.properties?.[connectBy]}`).join(", ")
+              )
+            );
+          }
+
           // Cool plotly optimization: instead of creating many traces for lines, create a single trace with NaN separators.
           // See https://www.somesolvedproblems.com/2019/05/how-to-make-plotly-faster-with-many.html
           for (let [key, instances] of groups) {
@@ -122,9 +142,12 @@ export const ScatterPlot = React.memo(
             allInstances.push(null);
             allSizes.push(...instances.map((_, i) => instanceScaler(i)));
             allSizes.push(null);
-            allColors.push(...instances.map((p, i) => (p === hover || p.selected ? "gold" : "lightgray")));
+            allColors.push(
+              ...instances.map((p, i) => (p === hover || p.selected ? "gold" : "lightgray"))
+            );
             allColors.push("darkblue");
           }
+          const allBorderColors = allColors.map((c) => color(c!)!.darker().toString());
 
           return {
             type: isHover ? "scatter" : "scattergl",
@@ -138,14 +161,14 @@ export const ScatterPlot = React.memo(
               color: allColors,
               size: allSizes,
               line: {
-                color: markerBorderColor.toString(),
+                color: allBorderColors,
                 width: 2,
               },
               opacity: 1,
             },
             line: {
               color: lineColor.toString(),
-              width: 2,
+              width: isKNNHover ? 0 : 2,
               shape: "spline",
               // opacity: 0.5
             },
@@ -242,7 +265,7 @@ export const ScatterPlot = React.memo(
     React.useEffect(() => {
       const timeout = setTimeout(() => {
         setFigureState((figureState) => {
-          const annotatedCollections = collections.map(({ data, name, plotOptions }) => {
+          const annotatedCollections = collections.map(({ data, hidden, name, plotOptions }) => {
             const colorBy = plotOptions?.colorBy || options.colorBy;
             const opacityBy = plotOptions?.opacityBy || options.opacityBy;
             const sizeBy = plotOptions?.sizeBy || options.sizeBy;
@@ -269,6 +292,7 @@ export const ScatterPlot = React.memo(
 
             return {
               data,
+              hidden,
               name,
               plotOptions,
               colorExtent,
@@ -290,13 +314,15 @@ export const ScatterPlot = React.memo(
             frames: [],
             layout: {
               ...(figureState?.layout || {}),
+              colorway: DEFAULT_COLORWAY,
               dragmode: "lasso",
               hovermode: "closest",
               autosize: true,
               legend: {
                 x: 1,
                 xanchor: "right",
-                y: 1,
+                y: 1.5,
+                bgcolor: 'rgba(255, 255, 255, 0.5)',
               },
               title,
               margin: {
@@ -307,7 +333,7 @@ export const ScatterPlot = React.memo(
                 pad: 4,
               },
             },
-            data: annotatedCollections.map(({ data, name, color, opacity, size, plotOptions }, i) => {
+            data: annotatedCollections.map(({ data, name, hidden, color, opacity, size, plotOptions }, i) => {
               const existingData = (figureState?.data.find((d) => d.name === name) as Partial<Plotly.PlotData>) || {};
 
               const groupBy = plotOptions?.groupBy || options.groupBy;
@@ -349,6 +375,8 @@ export const ScatterPlot = React.memo(
                 mode: "markers",
                 // Custom data has the [index of particle in filtered collection, index of particle in global collection] mapping
                 customdata: indices,
+                visible: !hidden ? true : "legendonly",
+                showlegend: false,
                 marker: {
                   ...(existingData.marker || {}),
                   color,
@@ -356,12 +384,12 @@ export const ScatterPlot = React.memo(
                   cmax: colorExtent?.[1],
                   opacity: opacity
                     ? normalizeArray(opacity, [0.1, 0.9] /* , opacityExtent */)
-                    : data.length > 10000
-                    ? 0.2
+                    : data.length >= 5000
+                    ? 0.5
                     : 0.5,
                   // opacity: opacity || 0.5,
                   symbol: i,
-                  size: size ?? (data.length > 10000 ? 2.5 : 5),
+                  size: size ?? (data.length >= 5000 ? 3.5 : 5),
                   sizeref,
                   sizemin: 2,
                   sizemax: 5,
@@ -402,7 +430,7 @@ export const ScatterPlot = React.memo(
       return () => {
         clearTimeout(timeout);
       };
-    }, [title, collections, xAccessor, yAccessor, options]);
+    }, [title, collections, xAccessor, yAccessor, JSON.stringify(options)]);
 
     React.useEffect(() => {
       setFigureState((figureState) =>
@@ -446,16 +474,11 @@ export const ScatterPlot = React.memo(
       return points.length > 0
         ? points.reduce<{ [key: string]: IParticle[] }>((acc, p) => {
             // @ts-ignore
-            const color = (p?.fullData as Plotly.Data)?.marker?.color;
             const collection = collections?.[p.curveNumber];
-            const [pointIndex, particleIndex] = (p.customdata as any) as [number, number];
+            const [pointIndex, particleIndex] = p.customdata as any as [number, number];
             const particle: IParticle | null = collection?.data?.[pointIndex];
             if (particle && !handledIndices.has(pointIndex)) {
               handledIndices.add(pointIndex);
-              particle.plotData = {
-                ...particle.plotData,
-                color: typeof color === "string" ? color : undefined,
-              };
               if (!acc[collection.name]) {
                 acc[collection.name] = [];
               }

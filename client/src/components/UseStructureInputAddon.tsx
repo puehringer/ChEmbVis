@@ -30,7 +30,6 @@ export function UseStructureInputAddon({
           setEditorOpen(false);
         }}
       />
-      <div className="input-group-prepend">
         <button
           className="btn btn-outline-secondary"
           type="button"
@@ -40,8 +39,6 @@ export function UseStructureInputAddon({
         >
           <i className="fas fa-mouse-pointer"></i>
         </button>
-      </div>
-      <div className="input-group-prepend">
         <button
           className="btn btn-outline-secondary"
           type="button"
@@ -50,7 +47,6 @@ export function UseStructureInputAddon({
         >
           <i className="fas fa-draw-polygon"></i>
         </button>
-      </div>
     </>
   );
 }

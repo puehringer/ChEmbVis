@@ -3,11 +3,12 @@ import numpy as np
 from flask.views import MethodView
 from rdkit import Chem
 from mso.objectives.scoring import ScoringFunction
-from mso.objectives.mol_functions import qed_score, heavy_atom_count, substructure_match_score, penalize_macrocycles
+from mso.objectives.mol_functions import substructure_match_score
 from mso.optimizer import BasePSOptimizer
-from ..schema import PSOArgsSchema, ParticleSchema
+from ..schema import PSOArgsSchema, ServerCollectionSchema
 from ..utils import cached, catch_time, mol
-from ..constants import get_inference_model, blp, logger
+from ..constants import blp, logger
+from ..models import embedding_models
 from ..projection import compute_all_projections
 from ..registry import models_by_name
 
@@ -20,7 +21,7 @@ def get_scoring_function_from_dict(dictionary):
     func, description, is_mol_func = models_by_name[name]
     if kwargs:
         if name == "distance score":
-            target = get_inference_model().seq_to_emb(kwargs["query"])
+            target = embedding_models['cddd'].encode(kwargs["query"])
             func = partial(func, target=target)
         elif (name == "substructure match") | (name == "substructure exclusion"):
             query = Chem.MolFromSmiles(kwargs["query"])
@@ -40,7 +41,7 @@ def get_scoring_function_from_dict(dictionary):
 class PSOAPI(MethodView):
 
     @blp.arguments(PSOArgsSchema, location='json')
-    @blp.response(200, ParticleSchema(many=True))
+    @blp.response(200, ServerCollectionSchema)
     @cached
     def post(self, args):
         structure = args.get('structure')
@@ -80,7 +81,7 @@ class PSOAPI(MethodView):
             init_smiles=structure,
             num_part=num_part,
             num_swarms=num_swarms,
-            inference_model=get_inference_model(),
+            inference_model=embedding_models['cddd'],
             scoring_functions=scoring_functions,
             v_min=v_min,
             v_max=v_max,
@@ -125,22 +126,25 @@ class PSOAPI(MethodView):
         x_stacked = x_stacked.astype(np.float64).tolist()
         with catch_time('Computing projections'):
             projections, projection = compute_all_projections(
-                {'smiles': smiles, 'embedding': x_stacked}, None)
+                {'smiles': smiles, 'cddd': x_stacked}, None)
 
-        return [{
-            'structure': smiles[i],
-            # TODO: We probably don't want to return the embedding...
-            # 'embedding': x_stacked[i],
-            'projection': {t: projection[t][0][i] for t in projections},
-            'properties': {
-                **mol.compute_properties(smiles[i]),
-                'iteration': iteration[i],
-                'instance_num': instance[i],
-                'instance': str(instance[i]),
-                'swarm_num': swarm_ids[i],
-                'swarm': str(swarm_ids[i]),
-                # 'v': v_stacked[i].tolist(),
-                'fitness': fitness[i],
-                **{key: value[i] for key, value in additional_scores.items()},
-            }
-        } for i, _ in enumerate(smiles)]
+        return {
+            'data': [{
+                'structure': smiles[i],
+                # TODO: We probably don't want to return the embedding...
+                'embedding': { 'cddd': x_stacked[i] },
+                'projection': {t: projection[t][0][i] for t in projections},
+                'properties': {
+                    **mol.compute_properties(smiles[i]),
+                    'iteration': iteration[i],
+                    'instance_num': instance[i],
+                    'instance': str(instance[i]),
+                    'swarm_num': swarm_ids[i],
+                    'swarm': str(swarm_ids[i]),
+                    # 'v': v_stacked[i].tolist(),
+                    'fitness': fitness[i],
+                    **{key: value[i] for key, value in additional_scores.items()},
+                }
+            } for i, _ in enumerate(smiles)],
+            "projections": projections
+        }

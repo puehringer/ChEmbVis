@@ -1,26 +1,32 @@
-from flask.views import MethodView
-from ..schema import ProjectionSchema, ProjectionArgsSchema
-from ..utils import cached
+from ..schema import ProjectionSchema, ProjectionWithModelsArgsSchema
+from ..utils import cached, logger
 from ..constants import blp
 from ..projection import compute_all_projections
 
 
-@blp.route('/projection/')
-class ProjectionAPI(MethodView):
+@blp.route('/projection/models', methods=["POST"])
+@blp.arguments(ProjectionWithModelsArgsSchema, location='json')
+@blp.response(200, ProjectionSchema())
+@cached
+def compute_projection_with_models(args):
+    particles = args.get('particles')
+    models = args.get('models')
 
-    @blp.arguments(ProjectionArgsSchema, location='json')
-    @blp.response(200, ProjectionSchema())
-    @cached
-    def post(self, args):
-        structures = args.get('structures')
-        embedding = args.get('embedding')
-        additional_structures = args.get('additional_structures')
-        additional_embedding = args.get('additional_embedding')
-        projections, projection = compute_all_projections({'smiles': structures, 'embedding': embedding}, {
-                                                           'smiles': additional_structures, 'embedding': additional_embedding})
+    # Fetch the possible embeddings from the first particle
+    possible_embeddings = (particles[0] or {}).get('embedding', {}).keys()
 
-        return {
-            'projections': projections,
-            'projection': {t: projection[t][0] for t in projections},
-            'additional': {t: projection[t][1] if projection[t][1] is not None else None for t in projections},
-        }
+    projections, projection = compute_all_projections(
+        None,
+        {
+            'smiles': [p['structure'] for p in particles],
+            **{key: [p.get('embedding', {}).get(key) for p in particles] for key in possible_embeddings}
+        },
+        {
+            'models': models,
+            'all_projections': models.keys()
+        })
+
+    return {
+        'projections': projections,
+        'projection': {t: projection[t][1] for t in projections}
+    }

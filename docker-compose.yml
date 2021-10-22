@@ -30,7 +30,7 @@ services:
   # Jupyter notebook container using same image of API for testing purposes
   api_notebook:
     image: cddd-explorer-api:latest
-    # Enable this to launch the jupyter API instead of the 
+    # Enable this to launch the jupyter API instead of the API itself
     command: ["jupyter", "notebook", "--notebook-dir=/_shared", "--port=8880", "--no-browser", "--ip=0.0.0.0", "--allow-root"]
     volumes:
       # Shared folder
@@ -112,18 +112,18 @@ services:
       - 3080:80
     depends_on:
       - api
-  notebook:
-    build: notebook
-    ports:
-      - 8888:8888
-    volumes:
-      - ./notebook/_shared:/home/jovyan/work
-    environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=all
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - capabilities:
-              - gpu
+  # notebook:
+  #   build: notebook
+  #   ports:
+  #     - 8888:8888
+  #   volumes:
+  #     - ./notebook/_shared:/home/jovyan/work
+  #   environment:
+  #     - NVIDIA_VISIBLE_DEVICES=all
+  #     - NVIDIA_DRIVER_CAPABILITIES=all
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - capabilities:
+  #             - gpu

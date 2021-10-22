@@ -50,12 +50,12 @@ export const SubstructureMatchingForm = ({
 
   return (
     <FormWrapper
-      title="Substructure matching"
+      title="Substructure Matching"
       loading={loading}
       setLoading={setLoading}
       onSubmit={computeSubstructures}
     >
-      <div className="form-group">
+      <div className="mb-3">
         <label htmlFor="smartsStructureInput">Substructure</label>
         <div className="input-group input-group-sm">
           <UseStructureInputAddon value={smarts} selection={selection} setValue={setSmarts} />
@@ -72,7 +72,7 @@ export const SubstructureMatchingForm = ({
           Use a SMILES or SMARTS query
         </small>
       </div>
-      <div className="text-right">
+      <div className="text-end">
         <ButtonWithUpload loading={loading} disabled={!smarts} text="Compute Substructure Matches" />
       </div>
     </FormWrapper>

@@ -1,16 +1,17 @@
+import base64
+from typing import Dict
 import numpy as np
 from flask import Flask, jsonify, request
 from werkzeug.exceptions import HTTPException
 from flask_cors import CORS
 from .constants import logger
 import tensorflow as tf
-import warnings
-import os
-import logging
-import sys
-from umap.parametric_umap import load_ParametricUMAP, ParametricUMAP
-from sklearn import manifold, decomposition
+import pickle
+from umap.parametric_umap import load_ParametricUMAP
+import umap
+from sklearn import decomposition
 from joblib import dump, load
+import zlib
 
 # Create API
 app = Flask(__name__)
@@ -79,7 +80,7 @@ def get_pca_model():
         try:
             # Try to load it from disk
             logger.info('Loading PCA model')
-            _pca_model = load('/_shared/p_pca.joblib')
+            _pca_model = load('/_shared/p_pca_new.joblib')
             logger.info('Succesfully loaded PCA model')
             return _pca_model
         except Exception:
@@ -94,7 +95,7 @@ def get_pca_model():
             # Fit the model on the embedding data
             _pca_model.fit(embedding)
             # Store it for later use
-            dump(_pca_model, '/_shared/p_pca.joblib')
+            dump(_pca_model, '/_shared/p_pca_new.joblib')
             logger.info('Succesfully fit and saved PCA model')
     return _pca_model
 
@@ -107,6 +108,27 @@ def get_method(method):
     else:
         raise ValueError(f'Invalid projection method {method}')
     return model
+
+
+@app.route("/api/projection/default_umap/", methods=['GET'])
+def compute_default_umap():
+    logger.info('Default umap projection computation')
+    data: Dict[str, any] = request.get_json()
+
+    if data.get('model_dump'):
+        logger.info('Received model dump, transforming new data...')
+        model = pickle.loads(zlib.decompress(base64.b64decode(data['model_dump'])))
+        result = model.transform(data['data'])
+    else:
+        logger.info('Fitting and transforming with data...')
+        options = data.get('options') or {}
+        model = umap.UMAP(**options)
+        result = model.fit_transform(data['data'])
+
+    return jsonify({
+        'data': result.tolist(),
+        'model_dump': base64.b64encode(zlib.compress(pickle.dumps(model), level=9)).decode('ascii')
+    })
 
 
 @app.route("/api/projection/<method>/", methods=['GET'])

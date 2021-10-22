@@ -29,7 +29,7 @@ export function ButtonWithUpload({
           }
         }}
       />
-      <Dropdown as={ButtonGroup} drop="right">
+      <Dropdown as={ButtonGroup} drop="end">
         <Button variant="primary" type="submit" disabled={loading || disabled}>
           {loading ? (
             <>

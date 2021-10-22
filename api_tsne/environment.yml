@@ -10,5 +10,6 @@ dependencies:
   - flask-cors
   - h5py=2.10.0
   - tensorflow-gpu==1.14
+  - pip
   - pip:
       - git+https://github.com/FrancescoCrecchi/Multiscale-Parametric-t-SNE.git

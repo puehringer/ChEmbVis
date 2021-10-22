@@ -42,7 +42,7 @@
 
 /* Lineup styles */
 .lineup-wrapper {
-  min-height: 80vh;
+  /* min-height: 80vh; */
   /* overflow: auto; */
 }
 
@@ -53,10 +53,11 @@
 
 .main-ranking .lineup-engine {
   height: 100%;
+  min-height: 500px;
 }
 
 /* react-grid-layout Styles */
-.react-grid-item:not(:hover) > .react-grid-item-drag-handle {
+.react-grid-item:not(:hover) > .react-grid-item-hidden {
   display: none;
 }
 .react-grid-item.react-grid-placeholder {
@@ -70,4 +71,21 @@ details > summary {
 
 .curve-editor > .curve-editor__svg {
   border: 1px solid transparent !important;
+}
+
+/* react-split-pane Styles (https://github.com/tomkp/react-split-pane#example-styling) */
+.split {
+  display: flex;
+  flex-direction: row;
+}
+
+.gutter {
+  background-color: #eee;
+  background-repeat: no-repeat;
+  background-position: 50%;
+}
+
+.gutter.gutter-horizontal {
+  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
+  cursor: col-resize;
 }

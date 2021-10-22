@@ -3,8 +3,8 @@ ENV PATH /opt/conda/bin:$PATH
 
 # Other deps
 RUN conda install -q -y conda-forge::rdkit tensorflow
-RUN pip install faerun
-RUN pip install umap-learn
+RUN conda install faerun
+RUN conda install umap-learn
 RUN conda install -c conda-forge notebook
 
 # Fix tqdm

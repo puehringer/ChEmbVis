@@ -5,18 +5,11 @@ from werkzeug.exceptions import HTTPException
 from flask_cors import CORS
 from flask_smorest import Api
 from .constants import blp, logger
-import warnings
-import logging
 import sys
 # For some reason we need to import tensorflow at startup, as otherwise CDDD fails with ModuleNotFoundError: No module named 'tensorflow_core.keras'.
 import tensorflow as tf
 logger.info(f'GPU available: {tf.test.is_gpu_available()}')
-from .api import InterpolationAPI  # noqa: F401
-from .api import PSOAPI  # noqa: F401
-from .api import ProjectionAPI  # noqa: F401
-from .api import MoleculeImageAPI  # noqa: F401
-from .api import EmbeddingAPI  # noqa: F401
-from .api import MMPAPI  # noqa: F401
+from .api import *  # noqa: F401
 
 # Why do I have to do this?
 sys.path.append('/home/backend')

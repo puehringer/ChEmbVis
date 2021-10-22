@@ -2,11 +2,9 @@ FROM continuumio/miniconda3:4.9.2
 ENV PATH /opt/conda/bin:$PATH
 ENV LANG C
 
-# Copy everything into backend
 WORKDIR /home/backend
-COPY . ./
-# Move the _shared folder to the image
-RUN mv ./_shared /_shared
+# Copy environment into backend
+COPY ./environment.yml ./environment.yml
 
 # Install conda dependencies
 RUN conda update -n base conda
@@ -16,23 +14,13 @@ ENV PATH /opt/conda/envs/api/bin:$PATH
 # Clean conda to reduce image size
 RUN conda clean -tipsy
 
-# Install CDDD
-WORKDIR /home/lib/
-RUN git clone https://github.com/jrwnter/cddd.git
-RUN pip install cddd/
-# WORKDIR /home/lib/cddd
-# RUN chmod +x download_default_model.sh
-# RUN ./download_default_model.sh
-# TODO: Some hack here
-# RUN cp default_model /opt/conda/envs/api/lib/python3.7/site-packages/cddd/data/
+# Copy everything else
+COPY . ./
+# Move the _shared folder to the image
+RUN mv ./_shared /_shared
 
-# Install MSO
-WORKDIR /home/lib/
-RUN git clone https://github.com/jrwnter/mso.git
-RUN pip install mso/
-
-# Add to path
-ENV PATH /home/lib:$PATH
+# HACK: For some reason chemical_vae installs Keras 2.0.7, which causes https://github.com/keras-team/keras/issues/7736 
+RUN sed -i 's/v.constraint = constraint//' /opt/conda/envs/api/lib/python3.7/site-packages/keras/backend/tensorflow_backend.py
 
 # Optionally configure Jupyter Notebook
 RUN jupyter nbextension enable --py widgetsnbextension

@@ -17,7 +17,7 @@ export function HorizontalCollapse({
 }) {
   //   const [collapsed, setCollapsed] = React.useState<boolean>(true);
 
-  const oppositePosition = position === "right" ? "left" : "right";
+  const oppositePosition = position === "right" ? "start" : "end";
 
   React.useEffect(() => {
     // Trigger a resize for plotly
@@ -49,19 +49,21 @@ export function HorizontalCollapse({
   return (
     <>
       {collapsed ? (
-        <div
-          style={{
-            position: "absolute",
-            top: 50,
-            //   [oppositePosition]: '100%',
-            [position]: 0,
-            whiteSpace: "nowrap",
-            transform: `rotate(270deg) translate(${position === "right" ? "0, -100%" : "-100%, 0"})`,
-            transformOrigin: `${position} 0`,
-            zIndex: 1000,
-          }}
-        >
-          {collapseButton}
+        <div>
+          <div
+            style={{
+              position: "absolute",
+              top: 50,
+              //   [oppositePosition]: '100%',
+              [position]: 0,
+              whiteSpace: "nowrap",
+              transform: `rotate(270deg) translate(${position === "right" ? "0, -100%" : "-100%, 0"})`,
+              transformOrigin: `${position} 0`,
+              zIndex: 1000,
+            }}
+          >
+            {collapseButton}
+          </div>
         </div>
       ) : null}
       {collapsed ? null : (

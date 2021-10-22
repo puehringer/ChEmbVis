@@ -27,7 +27,7 @@ class MoleculesSubstructureSchema(ma.Schema):
 class MoleculesTanimotoArgsSchema(ma.Schema):
     structures = ma.fields.List(ma.fields.String(), required=True, validate=ma.validate.Length(min=1))
     reference = ma.fields.String(required=True, validate=ma.validate.Length(min=1))
-    fingerprint = ma.fields.String(required=False, missing='morgan', validate=ma.validate.OneOf(['morgan', 'daylight', 'cddd']))
+    fingerprint = ma.fields.String(required=False, missing='ecfp4', validate=ma.validate.OneOf(['ecfp4', 'ecfp2', 'cddd']))
 
 
 class MoleculesTanimotoSchema(ma.Schema):

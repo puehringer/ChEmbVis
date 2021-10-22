@@ -4,7 +4,6 @@ import io
 from ..schema import MMPArgsSchema, MMPSchema
 from ..utils import cached
 from ..constants import blp, logger
-from ..projection import compute_all_projections
 
 
 @blp.route('/mmp/')
@@ -34,7 +33,7 @@ class MMPAPI(MethodView):
         # Hack: parse the second argument (the smiles) for each line
         structures = list(set([line.strip().split('\t')[1]
                                for line in output[1:]]))
-        logger.info(f"mmpdb found {structures} structures")
+        logger.info(f"mmpdb found {len(structures)} structures")
         return {
             'structures': structures
         }

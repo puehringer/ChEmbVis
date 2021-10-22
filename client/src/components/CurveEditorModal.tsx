@@ -69,7 +69,7 @@ export function CurveEditorModal({
         </Modal.Header>
         <Modal.Body>
           <form
-            className="form-inline mb-2"
+            className="row mb-2"
             style={{ alignItems: "baseline", flexFlow: "row", justifyContent: "center" }}
             onSubmit={(e) => {
               e.preventDefault();
@@ -78,29 +78,31 @@ export function CurveEditorModal({
               setMax(inputMax);
             }}
           >
-            <div className="form-group mr-4">
+            <div className="col mb-3 me-4">
               <label htmlFor="curveMinInput">Minimum</label>
               <input
                 type="number"
-                className="form-control form-control-sm ml-2"
+                className="form-control form-control-sm ms-2"
                 id="curveMinInput"
                 value={inputMin}
                 onChange={(e) => setInputMin(e.currentTarget.valueAsNumber)}
               />
             </div>
-            <div className="form-group mr-4">
+            <div className="col mb-3 me-4">
               <label htmlFor="curveMaxInput">Maximum</label>
               <input
                 type="number"
-                className="form-control  form-control-sm ml-2"
+                className="form-control  form-control-sm ms-2"
                 id="curveMaxInput"
                 value={inputMax}
                 onChange={(e) => setInputMax(e.currentTarget.valueAsNumber)}
               />
             </div>
-            <button type="submit" className="btn btn-sm btn-primary">
-              Apply
-            </button>
+            <div className="col">
+              <button type="submit" className="btn btn-sm btn-primary">
+                Apply
+              </button>
+            </div>
           </form>
           <CurveEditor
             points={points}

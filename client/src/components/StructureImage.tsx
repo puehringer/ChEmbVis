@@ -36,6 +36,7 @@ export const StructureImage = React.memo(
         src={src}
         alt={text}
         title={text}
+        loading={"lazy"}
         onLoad={(e) => (e.currentTarget.style.visibility = "visible")}
         onError={(e) => (e.currentTarget.style.visibility = "hidden")}
         {...(innerProps || {})}

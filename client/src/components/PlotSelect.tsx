@@ -1,11 +1,23 @@
 import * as React from "react";
+import castArray from "lodash.castarray";
+import Select from "react-select/creatable";
 
-interface GenericOption<T> {
+export interface GenericPlotSelectOption<T> {
   option: T | null | undefined;
   setOption(option: T | null): void;
 }
 
-export function PlotSelect({
+export interface IPlotSelectExtension {
+  component: React.FunctionComponent<{
+    availableNearestNeighbors: string[];
+    availableClusters: string[];
+    availableProperties: string[];
+  } & GenericPlotSelectOption<string>>;
+  additionalOptions: {label: string, value: string}[];
+}
+
+export function PlotSelect<IsMulti extends boolean = false>({
+  inline = true,
   multi,
   option,
   setOption,
@@ -13,61 +25,92 @@ export function PlotSelect({
   options,
   id,
   disabled,
+  availableNearestNeighbors,
+  availableClusters,
+  availableProperties,
+  extensions,
 }: {
+  inline?: boolean;
   options: string[];
   disabled?: boolean;
   id: string;
   label?: string;
-} & (
-  | ({
-      multi: true;
-    } & GenericOption<string[]>)
-  | ({
-      multi?: false;
-    } & GenericOption<string>)
-)) {
-  // @ts-ignore
-  const values: (string | null)[] = (multi ? option || [] : [option]).filter(Boolean);
-  if (values.length === 0 || (multi && values[values.length - 1] !== null)) {
-    values.push(null);
-  }
+  multi: IsMulti;
+  availableNearestNeighbors: string[];
+  availableClusters: string[];
+  availableProperties: string[];
+  extensions?: IPlotSelectExtension[];
+} & (IsMulti extends true ? GenericPlotSelectOption<string[]> : GenericPlotSelectOption<string>)) {
+  const values: string[] = React.useMemo(() => castArray(option).filter(Boolean) as string[], [option]);
 
   return (
-    <div className="d-flex" style={{ opacity: values.filter(Boolean).length === 0 ? 0.8 : undefined }}>
+    <div className={`d-flex position-relative ${inline ? 'col-sm-3' : 'col-12'}`}>
       {label ? (
-        <label className="my-1 mr-2" style={{ whiteSpace: "nowrap" }} htmlFor={id}>
+        <label
+          className={`my-1 me-2 align-self-center ${inline ? "" : "col-sm-2 d-flex"}`}
+          style={{ whiteSpace: "nowrap" }}
+          htmlFor={id}
+        >
           {label}
         </label>
       ) : null}
-      <div className="input-group my-1 mr-sm-2">
-        {values.map((v, i) => (
-          <select
-            key={i}
-            id={id}
-            className="custom-select custom-select-sm"
-            disabled={options.length === 0 || disabled}
-            value={v || ""}
-            onChange={(e) => {
-              const currentValue = e.currentTarget.value || null;
-              if (!multi) {
-                setOption(currentValue as any);
-              } else {
-                const newValues = currentValue ? [...values] : values.slice(0, i);
-                if (currentValue) {
-                  newValues[i] = currentValue;
+      <div className={`my-1 me-sm-2 flex-fill ${inline ? "" : "col-sm-10"}`} style={{ minWidth: 100 }}>
+        <div className="row">
+          <div className="col">
+            <Select<{ label: string; value: string }, IsMulti>
+              menuPosition="fixed"
+              isMulti={multi}
+              isClearable
+              styles={{ menu: (base) => ({ ...base, zIndex: 999 }) }}
+              onCreateOption={(value) => {
+                setOption(value as any);
+              }}
+              value={values.map((p) => ({
+                label: p,
+                value: p,
+              }))}
+              onChange={(e) => {
+                if (!e) {
+                  setOption(null);
+                  return;
                 }
-                setOption(newValues.filter(Boolean) as any);
-              }
-            }}
-          >
-            <option value={""}>{options.length === 0 ? "No available properties" : "Choose..."}</option>
-            {options.map((key) => (
-              <option key={key} value={key}>
-                {key}
-              </option>
-            ))}
-          </select>
-        ))}
+                // @ts-ignore
+                const values: { label: string; value: string }[] = castArray(e);
+                if (multi) {
+                  setOption(values.map((p) => p.value) as any);
+                } else {
+                  setOption(values?.[0]?.value as any);
+                }
+              }}
+              options={[
+                ...(extensions || []).map((e) => e.additionalOptions || []).flat(),
+                ...options.map((option) => ({
+                  label: option,
+                  value: option,
+                })),
+              ]}
+            />
+          </div>
+          {extensions?.map((e) => (
+            <e.component
+              setOption={(e) => {
+                if(!e) {
+                  return null;
+                }
+                const values: string[] = castArray(e);
+                if (multi) {
+                  setOption(values.map((p) => p) as any);
+                } else {
+                  setOption(values?.[0] as any);
+                }
+              }}
+              availableNearestNeighbors={availableNearestNeighbors}
+              availableClusters={availableClusters}
+              availableProperties={availableProperties}
+              option={values?.[0]}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

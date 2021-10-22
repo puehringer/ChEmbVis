@@ -1,4 +1,5 @@
-import { IInterpolatedParticle, IParticle, IRegistry } from "../interfaces";
+import { stringifyWithoutCycles } from ".";
+import { IInterpolatedParticle, IParticle, IRegistry, IServerCollection } from "../interfaces";
 
 function fetchRaw({ url, data, method = "POST" }: { url: string; data?: any; method?: string }): Promise<Response> {
   return fetch(url, {
@@ -9,7 +10,7 @@ function fetchRaw({ url, data, method = "POST" }: { url: string; data?: any; met
     // mode: '*cors', // no-cors, *cors, same-origin
     method,
     redirect: "follow",
-    body: JSON.stringify(data),
+    body: stringifyWithoutCycles(data),
   }).then(async (res) => {
     if (!res.ok) {
       throw Error((await res.json().catch(() => null))?.message || res.statusText);
@@ -38,12 +39,15 @@ export function runMSO(options: {
   phi2?: number;
   phi3?: number;
   objectives: any[];
-}): Promise<IParticle[]> {
-  return fetchJSON<IParticle[]>("/api/pso/", options);
+}): Promise<IServerCollection<IParticle>> {
+  return fetchJSON("/api/pso/", options);
 }
 
-export function embedStructures(data: { structures: string[], include_embedding?: boolean }): Promise<IParticle[]> {
-  return fetchJSON("/api/embedding/", data);
+export function embedStructures(data: {
+  structures: string[];
+  include_embedding?: boolean;
+}): Promise<IServerCollection<IParticle>> {
+  return fetchJSON<IServerCollection<IParticle>>("/api/embedding/", data);
 }
 
 export function getChemblUMAPEmbedding(): Promise<IParticle[]> {
@@ -53,19 +57,24 @@ export function getChemblUMAPEmbedding(): Promise<IParticle[]> {
   }).then((res) => res.json());
 }
 
-export function interpolateStructures(structures: string[], maxSamples?: number): Promise<IInterpolatedParticle[]> {
+export function interpolateStructures(
+  structures: string[],
+  maxSamples?: number
+): Promise<IServerCollection<IInterpolatedParticle>> {
   return fetchJSON("/api/interpolation/", {
     structures,
     maxSamples,
   });
 }
 
-export function getImageURL(structure: string, substructure: string | null = null, align: string | null = null): string {
+export function getImageURL(
+  structure: string,
+  substructure: string | null = null,
+  align: string | null = null
+): string {
   return `/api/image/?structure=${encodeURIComponent(structure)}${
     substructure ? `&substructure=${encodeURIComponent(substructure)}` : ""
-  }${
-    align ? `&align=${encodeURIComponent(align)}` : ""
-  }`;
+  }${align ? `&align=${encodeURIComponent(align)}` : ""}`;
 }
 
 export function getReducedImages(
@@ -78,21 +87,17 @@ export function getReducedImages(
   }).catch(() => null);
 }
 
-export function computeProjections(
-  structures: string[],
-  embedding: number[][],
-  additional_structures?: string[],
-  additional_embedding?: number[][]
+export function computeProjectionsWithModels(
+  particles: Pick<IParticle, 'structure' | 'embedding'>[],
+  models: { [key: string]: string }
 ): Promise<{
-  projections: string[];
+  projections: IServerCollection["projections"];
   projection: { [key: string]: number[][] };
   additional?: { [key: string]: number[][] | null };
 }> {
-  return fetchJSON("/api/projection/", {
-    structures,
-    embedding,
-    additional_structures,
-    additional_embedding,
+  return fetchJSON("/api/projection/models", {
+    particles: particles.map((p) => ({structure: p.structure, embedding: p.embedding})),
+    models,
   });
 }
 
@@ -125,11 +130,15 @@ export function getTanimotoSimilarity(
 
 export function getNeighborSamples(
   structure: string,
-  samples: number
-): Promise<IInterpolatedParticle[]> {
+  samples: number,
+  method: string,
+  scale: number
+): Promise<IServerCollection<IInterpolatedParticle>> {
   return fetchJSON("/api/sampling/", {
     structure,
-    samples
+    samples,
+    method,
+    scale,
   });
 }
 
@@ -145,6 +154,17 @@ export function getMatchedMolecularPairs(options: {
   structures: string[];
 }> {
   return fetchJSON("/api/mmp/", options);
+}
+
+export function getStonedSelfies(options: {
+  structure: string;
+  substructure: string;
+  random_samples?: number;
+  max_mutations?: number;
+}): Promise<{
+  structures: string[];
+}> {
+  return fetchJSON("/api/stoned_selfies/", options);
 }
 
 export function getRegistry(): Promise<IRegistry> {

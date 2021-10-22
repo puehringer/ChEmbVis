@@ -1,3 +1,6 @@
 __pycache__/
 _shared/
 .vscode/
+
+node_modules/
+/datasets/

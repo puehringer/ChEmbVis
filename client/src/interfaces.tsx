@@ -1,18 +1,31 @@
+export interface INearestNeighbors {
+  distance_metric: string;
+  knn_dist: number[];
+  knn_ind: number[];
+  knn_particles: IParticle[];
+}
+
 export interface IParticle {
   selected?: boolean;
   collection: string;
   index?: number;
   structure: string;
+  original_structure?: string;
   images?: string[];
-  embedding?: number[];
-  properties?: {
-    clusters?: string | null | undefined;
-    [key: string]: string | number | boolean | null | undefined;
+  embedding?: { [key: string]: number[] };
+  nearest_neighbors?: {
+    [key: string | symbol]: INearestNeighbors;
+  };
+  clusters?: {
+    [key: string | symbol]: {
+      distance_metric: string;
+      label: number;
+    };
+  };
+  properties: {
+    [key: string | symbol]: string | number | boolean | null | undefined;
   };
   projection: { [key: string]: number[] };
-  plotData?: {
-    color?: string;
-  };
 }
 
 export function isParticle(p: any): p is IParticle {
@@ -30,10 +43,29 @@ export interface IPlotOptions {
   sizeBy: string | null;
 }
 
-export interface ICollection<T extends IParticle = IParticle> {
+export interface IEnabledProjection {
+  label: string;
+  value: string;
+  projection: string | null;
+  plotOptions: Partial<IPlotOptions>;
+}
+
+export interface IServerCollection<T extends IParticle = IParticle> {
   data: T[];
+  projections?: {
+    [key: string]: {
+      trustworthiness?: number;
+      trustworthiness_additional?: number;
+      explained_variance?: number;
+      model?: string;
+    };
+  };
+}
+
+export interface ICollection<T extends IParticle = IParticle> extends IServerCollection<T> {
   name: string;
-  type?: 'neighborhoodSampling';
+  type?: "neighborhoodSampling";
+  hidden?: boolean;
   plotOptions?: Partial<IPlotOptions>;
 }
 

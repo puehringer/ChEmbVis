@@ -7,6 +7,7 @@ export interface IStructureFilter extends IStringFilter {
 
 export class StructureImageColumn extends StringColumn {
   protected structureFilter: IStructureFilter | null = null;
+  protected align: string | null = null;
 
   filter(row: IDataRow): boolean {
     if (!this.isFiltered()) {
@@ -32,6 +33,21 @@ export class StructureImageColumn extends StringColumn {
       [StringColumn.EVENT_FILTER_CHANGED, Column.EVENT_DIRTY_VALUES, Column.EVENT_DIRTY],
       this.structureFilter,
       (this.structureFilter = filter)
+    );
+  }
+
+  getAlign(): string | null {
+    return this.align;
+  }
+
+  setAlign(structure: string | null): void {
+    if (equal(structure, this.align)) {
+      return;
+    }
+    
+    this.fire(
+      [Column.EVENT_DIRTY_VALUES, Column.EVENT_DIRTY],
+      (this.align = structure)
     );
   }
 }

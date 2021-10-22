@@ -9,6 +9,6 @@ dependencies:
   - flask
   - flask-cors
   - numba=0.52.0
-  - tensorflow=2.2.0
+  - tensorflow=2.4.1
   - conda-forge::umap-learn>=0.5
   - anaconda::scikit-learn>=0.22

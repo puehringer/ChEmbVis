@@ -4,6 +4,7 @@ import { IParticle } from "../interfaces";
 import { PlotComponent } from "./PlotComponent";
 import lodashGet from "lodash.get";
 import memoizeOne from "memoize-one";
+import { DEFAULT_COLORWAY } from "../utils/constants";
 
 function _getSelectedIndices<T>(data: T[], selection: T[]): number[] {
   const lookup = data.reduce<Map<T, number>>((acc, cur, i) => {
@@ -119,6 +120,7 @@ export const ProjectionPlot = React.memo(
           frames: [],
           layout: {
             ...(figureState?.layout || {}),
+            colorway: DEFAULT_COLORWAY,
             dragmode: "lasso",
             hovermode: "closest",
             autosize: true,
@@ -178,12 +180,6 @@ export const ProjectionPlot = React.memo(
                   structure,
                 };
               }
-            }
-            if (particle) {
-              particle.plotData = {
-                ...particle.plotData,
-                color: typeof color === "string" ? color : undefined,
-              };
             }
             // I don't know why typescript does not check the .filter(Boolean)
             return particle!;

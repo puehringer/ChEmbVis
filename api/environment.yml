@@ -10,16 +10,19 @@ dependencies:
   - rdkit::rdkit=2020.09.1.0
   - tmap::tmap
   - mhfp
+  - conda-forge::hdbscan
   # The EGFR and BACE1 models require < 0.22
   - scikit-learn==0.21.3
   # - scikit-learn>=0.22
-  - numpy>=1.15.4
+  # numpy 1.20 causes "Cannot convert a symbolic Tensor (Decoder/Size:0) to a numpy array." https://stackoverflow.com/questions/58479556/notimplementederror-cannot-convert-a-symbolic-tensor-2nd-target0-to-a-numpy
+  - numpy==1.19
   - flask
   - flask-smorest
   - flask-cors
   - flask-caching
   - curl
   - unzip
+  - keras==2.3.1
   - tensorflow-gpu==1.15
   # umap-learn >= 0.5 requires scikit >= 0.22
   - conda-forge::umap-learn==0.4.6
@@ -27,5 +30,14 @@ dependencies:
   # Install notebook for testing purposes
   - conda-forge::notebook
   - conda-forge::ipywidgets
+  - selfies
+  - fcd
+  - pip
   - pip:
       - git+https://github.com/rdkit/mmpdb.git
+      - git+https://github.com/jrwnter/cddd.git@dev
+      - git+https://github.com/jrwnter/mso.git
+      # Switch back to original implementation when https://github.com/BenevolentAI/MolBERT/pull/9 is merged
+      # - git+https://github.com/BenevolentAI/MolBERT.git
+      - git+https://github.com/puehringer/MolBERT.git@mp/add_manifest_in
+      - git+https://github.com/aspuru-guzik-group/chemical_vae.git

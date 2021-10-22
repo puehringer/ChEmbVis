@@ -13,7 +13,7 @@ import { StructureImageColumn } from "./StructureImageColumn";
 import { abortAble } from "lineupengine";
 
 const template =
-  '<div style="background-size: contain; background-position: center; background-repeat: no-repeat;"></div>';
+  '<a target="_blank" rel="noopener" style="background-size: contain; background-position: center; background-repeat: no-repeat;"></a>';
 
 export function svgToImageSrc(svg: string): string {
   return `data:image/svg+xml;base64,${btoa(svg)}`;
@@ -33,7 +33,7 @@ export class StructureImageRenderer implements ICellRendererFactory {
   create(col: StructureImageColumn): ICellRenderer {
     return {
       template,
-      update: (n: HTMLImageElement, d: IDataRow) => {
+      update: (n: HTMLLinkElement, d: IDataRow) => {
         if (!renderMissingDOM(n, col, d)) {
           if(d.v.images?.[0]) {
             n.style.backgroundImage = svgToCSSBackground(d.v.images[0]);
@@ -45,8 +45,9 @@ export class StructureImageRenderer implements ICellRendererFactory {
             if (typeof image === "symbol") {
               return;
             }
-            n.style.backgroundImage = `url('${getImageURL(value, col.getFilter()?.filter)}')`;
-            n.alt = value;
+            n.style.backgroundImage = `url('${getImageURL(value, col.getFilter()?.filter, col.getAlign())}')`;
+            n.title = value;
+            n.href = `https://pubchem.ncbi.nlm.nih.gov/#query=${value}`;
           });
         }
       },

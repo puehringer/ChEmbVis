@@ -1,8 +1,10 @@
 from rdkit import Chem
-from rdkit.Chem import AllChem, rdFMCS
+from rdkit.Chem import AllChem, rdFMCS, Mol
 from rdkit.Chem.Draw import rdMolDraw2D, SimilarityMaps
 from rdkit.ML.Descriptors import MoleculeDescriptors
-
+from rdkit.Chem.AtomPairs.Sheridan import GetBPFingerprint, GetBTFingerprint
+from rdkit.Chem.Pharm2D import Generate, Gobbi_Pharm2D
+from rdkit.Chem import MolToSmiles
 
 def is_valid_mol(mol):
     return _string_to_mol(mol) is not None
@@ -28,9 +30,40 @@ def compute_properties(mol):
 
     return {
         'valid': True,
-        **dict(zip(calculator.GetDescriptorNames(), calculator.CalcDescriptors(mol))),
-        # 'morgan': list(AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=1024))
+        'scaffold': _generate_scaffold(MolToSmiles(mol)),
+        **dict(zip(calculator.GetDescriptorNames(), calculator.CalcDescriptors(mol)))
     }
+
+
+def _generate_scaffold(smiles: str, include_chirality: bool = False) -> str:
+    """Compute the Bemis-Murcko scaffold for a SMILES string.
+    Bemis-Murcko scaffolds are described in DOI: 10.1021/jm9602928.
+    They are essentially that part of the molecule consisting of
+    rings and the linker atoms between them.
+    Paramters
+    ---------
+    smiles: str
+        SMILES
+    include_chirality: bool, default False
+        Whether to include chirality in scaffolds or not.
+    Returns
+    -------
+    str
+        The MurckScaffold SMILES from the original SMILES
+    References
+    ----------
+    .. [1] Bemis, Guy W., and Mark A. Murcko. "The properties of known drugs.
+        1. Molecular frameworks." Journal of medicinal chemistry 39.15 (1996): 2887-2893.
+    Note
+    ----
+    This function requires RDKit to be installed.
+    """
+    from rdkit import Chem
+    from rdkit.Chem.Scaffolds.MurckoScaffold import MurckoScaffoldSmiles
+
+    mol = Chem.MolFromSmiles(smiles)
+    scaffold = MurckoScaffoldSmiles(mol=mol, includeChirality=include_chirality)
+    return scaffold
 
 
 def _get_svg_drawer():
@@ -86,17 +119,66 @@ def mols_to_similarity_svg(mols):
     return _get_svg_from_drawer(drawer)
 
 
-def to_fingerprint(fingerprint):
-    if fingerprint == 'morgan':
-        def fp_getter(m): return AllChem.GetMorganFingerprintAsBitVect(m, 2)
-    elif fingerprint == 'daylight':
-        def fp_getter(m): return Chem.RDKFingerprint(m)
-    else:
-        raise ValueError(f'Fingerprint {fingerprint} unknown')
-    return fp_getter
+class _FingerprintCalculator:
+    ''' Calculate the fingerprint for a molecule, given the fingerprint type
+    Parameters: 
+        fingerprint (string)            :Fingerprint type  (choices: AP/PHCO/BPF,BTF,PAT,ECFP4,ECFP6,FCFP4,FCFP6)  
+    Returns:
+        function accepting a MOL and returning the corresponding fingerprint.
+    '''
+
+    def get_fingerprint(self, fingerprint: str):
+        method_name = 'get_' + fingerprint.upper()
+        method = getattr(self, method_name)
+        if method is None:
+            raise Exception(f'{fingerprint} is not a supported fingerprint type.')
+        return method
+
+    def get_AP(self, mol: Mol):
+        return AllChem.GetAtomPairFingerprint(mol, maxLength=10)
+
+    def get_PHCO(self, mol: Mol):
+        return Generate.Gen2DFingerprint(mol, Gobbi_Pharm2D.factory)
+
+    def get_BPF(self, mol: Mol):
+        return GetBPFingerprint(mol)
+
+    def get_BTF(self, mol: Mol):
+        return GetBTFingerprint(mol)
+
+    def get_PATH(self, mol: Mol):
+        return AllChem.RDKFingerprint(mol)
+
+    def get_ECFP2(self, mol: Mol):
+        return AllChem.GetMorganFingerprintAsBitVect(mol, 1)
+
+    def get_ECFP4(self, mol: Mol):
+        return AllChem.GetMorganFingerprintAsBitVect(mol, 2)
+
+    def get_ECFP6(self, mol: Mol):
+        return AllChem.GetMorganFingerprintAsBitVect(mol, 3)
+
+    def get_FCFP4(self, mol: Mol):
+        return AllChem.GetMorganFingerprintAsBitVect(mol, 2, useFeatures=True)
+
+    def get_FCFP6(self, mol: Mol):
+        return AllChem.GetMorganFingerprintAsBitVect(mol, 3, useFeatures=True)
 
 
-def mols_to_fingerprints(mols, fingerprint):
+def to_fingerprint(fingerprint: str):
+    ''' Fingerprint getter method. Fingerprint is returned after using object of 
+        class '_FingerprintCalculator'
+        
+    Parameters: 
+        fingerprint (string)            :Fingerprint type  (choices: AP/PHCO/BPF,BTF,PAT,ECFP4,ECFP6,FCFP4,FCFP6)  
+    Returns:
+        function accepting a MOL and returning the corresponding fingerprint.
+        
+    '''
+    return _FingerprintCalculator().get_fingerprint(fingerprint)
+
+
+def mols_to_fingerprints(mols, fingerprint: str):
     fp_getter = to_fingerprint(fingerprint)
     mols = [_string_to_mol(mol) or _string_to_mol('*') for mol in mols]
     return [fp_getter(m) for m in mols]

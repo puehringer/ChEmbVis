@@ -5,15 +5,15 @@ import { DetailsSummaryWrapper } from "./DetailsSummaryWrapper";
 export const FormWrapper = ({
   open = false,
   title,
-  loading,
-  setLoading,
+  loading = false,
+  setLoading = () => null,
   onSubmit,
   children,
 }: {
   open?: boolean;
   title: React.ReactNode;
-  loading: boolean;
-  setLoading(loading: boolean): void;
+  loading?: boolean;
+  setLoading?(loading: boolean): void;
   onSubmit(): void | Promise<any>;
   children: React.ReactNode;
 }) => {

@@ -4,6 +4,7 @@ import { ButtonWithUpload } from "../ButtonWithUpload";
 import { getMatchedMolecularPairs, embedStructures } from "../../utils/api";
 import { FormWrapper } from "./FormWrapper";
 import { UseStructureInputAddon } from "../UseStructureInputAddon";
+import { useNameInput } from "../../utils/hooks";
 
 export const MatchedMolecularPairsForm = ({
   addCollection,
@@ -16,8 +17,8 @@ export const MatchedMolecularPairsForm = ({
   loading: boolean;
   setLoading(loading: boolean): void;
 }) => {
-  const [name, setName] = React.useState<string>("");
   const [structure, setStructure] = React.useState<string>("");
+  const [name, setName, nameInput] = useNameInput("mmpNameInput", `MMP ${structure}`);
   const [substructure, setSubstructure] = React.useState<string>("");
   const [minVariableSize, setMinVariableSize] = React.useState<number>(0);
   const [maxVariableSize, setMaxVariableSize] = React.useState<number>(1);
@@ -55,14 +56,16 @@ export const MatchedMolecularPairsForm = ({
         if(structures.length === 0) {
           throw Error('No matching pairs found');
         }
-        const particles = await embedStructures({structures});
+        const embeddedCollection = await embedStructures({structures, include_embedding: true});
         addCollection({
-          name: name || `MMP ${structure}`,
-          data: particles,
+          name,
+          ...embeddedCollection
         });
+        setName('');
       }}
     >
-      <div className="form-group">
+      {nameInput}
+      <div className="mb-3">
         <label htmlFor="mmpStructureInput">Structure</label>
         <div className="input-group input-group-sm">
           <UseStructureInputAddon value={structure} selection={selection} setValue={setStructure} />
@@ -78,18 +81,7 @@ export const MatchedMolecularPairsForm = ({
       </div>
       <details>
         <summary>Advanced Settings</summary>
-        <div className="form-group">
-          <label htmlFor="mmpNameInput">Name</label>
-          <input
-            type="text"
-            className="form-control form-control-sm"
-            id="mmpNameInput"
-            placeholder={`MMP ${structure}`}
-            value={name}
-            onChange={(e) => setName(e.currentTarget.value)}
-          />
-        </div>
-        <div className="form-group">
+        <div className="mb-3">
           <label htmlFor="minVariableSizeInput">Min Variable Size</label>
           <input
             type="number"
@@ -101,7 +93,7 @@ export const MatchedMolecularPairsForm = ({
             onChange={(e) => setMinVariableSize(e.currentTarget.valueAsNumber)}
           />
         </div>
-        <div className="form-group">
+        <div className="mb-3">
           <label htmlFor="maxVariableSizeInput">Max Variable Size</label>
           <input
             type="number"
@@ -113,7 +105,7 @@ export const MatchedMolecularPairsForm = ({
             onChange={(e) => setMaxVariableSize(e.currentTarget.valueAsNumber)}
           />
         </div>
-        <div className="form-group">
+        <div className="mb-3">
           <label htmlFor="minConstantSizeInput">Min Constant Size</label>
           <input
             type="number"
@@ -125,7 +117,7 @@ export const MatchedMolecularPairsForm = ({
             onChange={(e) => setMinConstantSize(e.currentTarget.valueAsNumber)}
           />
         </div>
-        <div className="form-group">
+        <div className="mb-3">
           <label htmlFor="minRadiusInput">Min Radius</label>
           <input
             type="number"
@@ -137,7 +129,7 @@ export const MatchedMolecularPairsForm = ({
             onChange={(e) => setMinRadius(e.currentTarget.valueAsNumber)}
           />
         </div>
-        <div className="form-group">
+        <div className="mb-3">
           <label htmlFor="minPairsInput">Min Pairs</label>
           <input
             type="number"
@@ -149,7 +141,7 @@ export const MatchedMolecularPairsForm = ({
             onChange={(e) => setMinPairs(e.currentTarget.valueAsNumber)}
           />
         </div>
-        <div className="form-group">
+        <div className="mb-3">
           <label htmlFor="mmpSmartsStructureInput">SMARTS Substructure</label>
           <div className="input-group input-group-sm">
             <UseStructureInputAddon value={substructure} selection={selection} setValue={setSubstructure} />
@@ -164,7 +156,7 @@ export const MatchedMolecularPairsForm = ({
           </div>
         </div>
       </details>
-      <div className="text-right">
+      <div className="text-end">
         <ButtonWithUpload loading={loading} disabled={!structure} text="Compute MMP" />
       </div>
     </FormWrapper>

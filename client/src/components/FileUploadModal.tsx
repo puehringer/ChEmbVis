@@ -29,12 +29,11 @@ export function FileUploadModal({
         </Modal.Header>
         <Modal.Body>
           <form>
-            <div className="form-group">
+            <div className="mb-3">
               <label htmlFor="customFileInput">Either upload a file</label>
-              <div className="custom-file">
                 <input
                   type="file"
-                  className="custom-file-input"
+                  className="form-control"
                   id="customFileInput"
                   onChange={(e) => {
                     const files = Array.from(e.currentTarget.files || []);
@@ -45,12 +44,8 @@ export function FileUploadModal({
                     }
                   }}
                 />
-                <label className="custom-file-label" htmlFor="customFileInput">
-                  Choose file
-                </label>
-              </div>
             </div>
-            <div className="form-group">
+            <div className="mb-3">
               <label htmlFor="customFileTextarea">Or paste the content</label>
               <textarea
                 id="customFileTextarea"

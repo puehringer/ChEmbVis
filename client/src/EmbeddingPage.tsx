@@ -1,11 +1,10 @@
 import * as React from "react";
 import { LoadingPage } from "./components/LoadingPage";
-import { PlotSelect } from "./components/PlotSelect";
-import { StructureCard } from "./components/StructureCard";
 import {
   DEFAULT_CHEMBL_COLLECTION,
   EActiveTabs,
   ICollection,
+  IEnabledProjection,
   IParticle,
   IParticleSelection,
   IPlotOptions,
@@ -13,7 +12,7 @@ import {
 } from "./interfaces";
 import { StructureCardGrid } from "./components/StructureCardGrid";
 import { HorizontalCollapse } from "./components/HorizontalCollapse";
-import { ClusterSidePanel, getClustersFromParticle } from "./ClusterSidePanel";
+import { ClusterSidePanel } from "./ClusterSidePanel";
 import { Tooltip } from "./utils/hooks";
 import { GridItemOptions } from "./components/GridItemOptions";
 import { Grid } from "./components/Grid";
@@ -23,7 +22,19 @@ import { ScatterPlot } from "./components/ScatterPlot";
 import { InterpolationForm } from "./components/form/InterpolationForm";
 import { MatchedMolecularPairsForm } from "./components/form/MatchedMolecularPairsForm";
 import { NeighborSamplingForm } from "./components/form/NeighborSamplingForm";
-import { DetailsSummaryWrapper } from "./components/form/DetailsSummaryWrapper";
+import { RecomputeEmbeddingsForm } from "./components/form/RecomputeEmbeddingsForm";
+import CreatableSelect from "react-select/creatable";
+import { ParallelCoordinatesPlot } from "./components/ParallelCoordinatesPlot";
+import { StonedSelfiesForm } from "./components/form/StonedSelfiesForm";
+import { StructureImage } from "./components/StructureImage";
+import { ProjectionSettingsModal } from "./components/ProjectionSettingsModal";
+import { ProjectionSettingsForm } from "./components/form/ProjectionSettingsForm";
+import pickBy from "lodash.pickby";
+// @ts-ignore Typings?
+import Split from "react-split";
+import ReactResizeDetector from "react-resize-detector";
+
+const NR_OF_LATENT_SPACE_PARTICLES = 10;
 
 export function EmbeddingPage({
   registry,
@@ -40,15 +51,24 @@ export function EmbeddingPage({
   setInterpolationStructures(structures: string[]): void;
   setActiveTab(tab: EActiveTabs): void;
 }) {
-  const allParticles = React.useMemo(() => collections.reduce<IParticle[]>((acc, cur) => [...acc, ...cur.data], []), [
-    collections,
-  ]);
+  const allParticles = React.useMemo(
+    () => collections.reduce<IParticle[]>((acc, cur) => [...acc, ...cur.data], []),
+    [collections]
+  );
 
   const [visibleNeighborhoodSamplings, setVisibleNeighborhoodSamplings] = React.useState<IParticle[] | null>(null);
   const [loading, setLoading] = React.useState<boolean>(false);
-  const [clusterCollapsed, setClusterCollapsed] = React.useState<boolean>(true);
+  const [clusterCollapsed, setClusterCollapsed] = React.useState<boolean>(false);
   const [optionsCollapsed, setOptionsCollapsed] = React.useState<boolean>(false);
-  const [enabledProjections, setEnabledProjections] = React.useState<string[]>(["chembl_umap"]);
+  const [enabledProjections, setEnabledProjections] = React.useState<IEnabledProjection[]>([
+    {
+      label: "chembl_umap",
+      value: "chembl_umap",
+      projection: "chembl_umap",
+      plotOptions: {},
+    },
+  ]);
+  const [editProjection, setEditProjection] = React.useState<IEnabledProjection | undefined>(undefined);
 
   const [hover, setHover] = React.useState<IParticle | null>(null);
   const [filtered, setFiltered] = React.useState<IParticleSelection>(null);
@@ -73,56 +93,6 @@ export function EmbeddingPage({
     [collections]
   );
 
-  // Wrap the setClustersChanged into a shallow list compare to avoid rerenders
-  const [_clustersChanged, _setClustersChanged] = React.useState<any>({});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  // const clusters = React.useMemo(() => particles.filter((p) => p.selected), [
-  //   particles,
-  //   _selectedChanged,
-  // ]);
-  const clusters = React.useMemo<{ [key: string]: IParticle[] }>(() => {
-    void _clustersChanged; // Line only exists to avoid eslint-disable-next-line react-hooks/exhaustive-deps
-    const c: { [key: string]: IParticle[] } = {};
-    allParticles.forEach((p) => {
-      getClustersFromParticle(p).forEach((cluster) => {
-        if (!c[cluster]) {
-          c[cluster] = [];
-        }
-        c[cluster].push(p);
-      });
-    });
-    // Sort alphabetically
-    return Object.keys(c)
-      .sort()
-      .reduce((acc, cur) => ({ ...acc, [cur]: c[cur] }), {});
-  }, [allParticles, _clustersChanged]);
-
-  const setClusters = React.useCallback(
-    (name: string, cluster: IParticle[] | null) => {
-      if (!cluster) {
-        allParticles.forEach((p) => {
-          const c = getClustersFromParticle(p);
-          if (c.includes(name)) {
-            p.properties!.clusters = c
-              .filter((clusterName) => clusterName !== name)
-              .sort()
-              .join(";");
-          }
-        });
-      } else {
-        cluster.forEach((p) => {
-          p.properties = {
-            ...(p.properties || {}),
-            clusters: `${p.properties?.clusters ? `${p.properties.clusters};` : ""}${name}`,
-          };
-        });
-      }
-      _setClustersChanged({});
-      setCollections([...collections]);
-    },
-    [allParticles, setCollections, collections]
-  );
-
   // Plot options
   const [plotOptions, setPlotOptions] = React.useState<IPlotOptions>({
     colorBy: null,
@@ -131,31 +101,35 @@ export function EmbeddingPage({
     connectBy: null,
     sizeBy: null,
   });
+
   const [customX, setCustomX] = React.useState<string | null>(null);
   const [customY, setCustomY] = React.useState<string | null>(null);
+  const [customPlotSettings, setCustomPlotSettings] = React.useState<IEnabledProjection | undefined>(undefined);
 
   // Ranking options
   const [showSelectedOnly, setShowSelectedOnly] = React.useState<boolean>(false);
 
-  const [availableProperties, availableProjections] = React.useMemo(() => {
-    void clusters; // Line only exists to avoid eslint-disable-next-line react-hooks/exhaustive-deps
-    const keys: (keyof IParticle)[] = ["properties", "projection"];
-    return keys.map((field) =>
-      Array.from(
-        allParticles
-          .reduce<Set<string>>((acc, cur) => {
-            Object.keys(cur[field] || {}).forEach((key) => acc.add(key));
-            return acc;
-          }, new Set())
-          .keys()
-      )
-    );
-  }, [allParticles, clusters]);
+  const [availableProperties, availableProjections, availableEmbeddings, availableNearestNeighbors, availableClusters] =
+    React.useMemo(() => {
+      const keys: (keyof IParticle)[] = ["properties", "projection", "embedding", "nearest_neighbors", "clusters"];
+      return keys.map((field) =>
+        Array.from(
+          allParticles
+            .reduce<Set<string>>((acc, cur) => {
+              Object.keys(cur[field] || {}).forEach((key) => acc.add(key));
+              return acc;
+            }, new Set())
+            .keys()
+        )
+      );
+    }, [allParticles]);
+
   const availableOpacityProperties = React.useMemo(() => [...availableProperties, "constant"], [availableProperties]);
+  const availableConnectByProperties = React.useMemo(() => availableProperties, [availableProperties]);
 
   React.useEffect(() => {
     if (plotOptions.colorBy && !availableProperties.includes(plotOptions.colorBy)) {
-      setPlotOptions({ ...plotOptions, colorBy: null });
+      // setPlotOptions({ ...plotOptions, colorBy: null });
     }
     if (
       plotOptions.opacityBy &&
@@ -167,21 +141,29 @@ export function EmbeddingPage({
     if (plotOptions.groupBy && !availableProperties.includes(plotOptions.groupBy)) {
       setPlotOptions({ ...plotOptions, groupBy: null });
     }
-    if (plotOptions.connectBy && plotOptions.connectBy.some((option) => !availableProperties.includes(option))) {
-      setPlotOptions({ ...plotOptions, connectBy: null });
+    if (
+      plotOptions.connectBy &&
+      plotOptions.connectBy.some((option) => !availableConnectByProperties.includes(option))
+    ) {
+      // setPlotOptions({ ...plotOptions, connectBy: null });
     }
     if (plotOptions.sizeBy && !availableProperties.includes(plotOptions.sizeBy)) {
       setPlotOptions({ ...plotOptions, sizeBy: null });
     }
-  }, [availableProperties, availableOpacityProperties, plotOptions]);
+  }, [availableProperties, availableOpacityProperties, availableConnectByProperties, plotOptions]);
 
-  React.useEffect(() => {
-    if (!collections.find((c) => c.name === DEFAULT_CHEMBL_COLLECTION)) {
-      getChemblUMAPEmbedding()
-        .then((data) => setCollections([...collections, { data, name: DEFAULT_CHEMBL_COLLECTION }]))
-        .catch((e) => console.error("Error loading chembl umap", e));
-    }
-  }, [collections, setCollections]);
+  React.useEffect(
+    () => {
+      if (false && !collections.find((c) => c.name === DEFAULT_CHEMBL_COLLECTION)) {
+        getChemblUMAPEmbedding()
+          .then((data) => setCollections([...collections, { data, name: DEFAULT_CHEMBL_COLLECTION }]))
+          .catch((e) => console.error("Error loading chembl umap", e));
+      }
+    },
+    [
+      /* collections, setCollections */
+    ]
+  );
 
   const filteredCollections = React.useMemo<ICollection[]>(() => {
     return filtered ? Object.entries(filtered).map(([name, data]) => ({ name, data })) : collections;
@@ -193,95 +175,85 @@ export function EmbeddingPage({
       : collections;
   }, [collections, showSelectedOnly, selection]);
 
-  const latentSpaceCollections = React.useMemo(() => {
-    return filteredCollections.map((c) => {
-      const data = c.data
-        .filter((d) => d.embedding)
-        .map((d) => {
-          return d.embedding!.map((y, x) => ({
-            ...d,
-            properties: {
-              ...(d.properties || {}),
-              latentX: x,
-              latentY: y,
-            },
-          }));
-        })
-        .flat();
-      return {
-        ...c,
-        data,
-      };
-    });
-  }, [filteredCollections]);
+  const latentSpaceCollections = React.useMemo<{ [key: string]: ICollection[] } | null>(() => {
+    return true
+      ? availableEmbeddings.reduce<{ [key: string]: any }>(
+          (acc, cur) => ({
+            ...acc,
+            [cur]: filteredCollections.map((c) => {
+              // Restrict to the first n particles
+              const data = c.data
+                .slice(0, NR_OF_LATENT_SPACE_PARTICLES)
+                .filter((d) => d.embedding?.[cur])
+                .map((d) => {
+                  return d.embedding![cur].map((y, x) => ({
+                    ...d,
+                    properties: {
+                      ...(d.properties || {}),
+                      latentX: x,
+                      latentY: y,
+                    },
+                  }));
+                })
+                .flat();
+              return {
+                ...c,
+                data,
+              };
+            }),
+          }),
+          {}
+        )
+      : null;
+  }, [filteredCollections, availableEmbeddings]);
 
   return (
     <>
       <Tooltip>
         {hover ? (
-          <StructureCard
-            structure={hover}
-            showProperties={false}
+          // <StructureCard
+          //   structure={hover}
+          //   showProperties={false}
+          //   style={{
+          //     width: 180,
+          //     backgroundColor: 'rgba(255, 255, 255, 0.2)'
+          //   }}
+          // />
+          <StructureImage
+            structure={hover.structure}
             style={{
-              width: "180px",
+              width: 180,
+              backgroundColor: "rgba(255, 255, 255, 0.6)",
             }}
           />
         ) : null}
       </Tooltip>
+      <ProjectionSettingsModal
+        config={editProjection}
+        availableNearestNeighbors={availableNearestNeighbors}
+        availableClusters={availableClusters}
+        availableProjections={availableProjections}
+        availableProperties={availableProperties}
+        availableOpacityProperties={availableOpacityProperties}
+        availableConnectByProperties={availableConnectByProperties}
+        onHide={() => setEditProjection(undefined)}
+        onSave={(value) => {
+          setEditProjection(undefined);
+          // TODO: Hacky way to distinguish if the custom plot or one of the added plots was edited.
+          if(enabledProjections.includes(editProjection!)) {
+            setEnabledProjections((projections) => projections.map((p) => (p === editProjection ? value : p)));
+          } else if(!customPlotSettings || customPlotSettings === editProjection) {
+            setCustomPlotSettings(value);
+          }
+        }}
+      />
       <HorizontalCollapse
         label="Options"
         position="left"
-        size="col-md-3"
+        size="col-3"
         collapsed={optionsCollapsed}
         setCollapsed={setOptionsCollapsed}
       >
-        {collections.length > 0 ? (
-          <DetailsSummaryWrapper open={true} title="Available Collections">
-            <>
-              {collections.map((c) => (
-                <div className="d-flex align-items-center mb-1">
-                  <span className="text-truncate mr-auto" title={c.name}>
-                    {c.name}
-                  </span>
-                  <div className="btn-group btn-group-sm ml-2 mr-2" role="group">
-                    {/* <button
-                      type="button"
-                      className="btn btn-light"
-                      title={c.disabled ? 'Enable collection' : 'Disable collection'}
-                      onClick={() => {
-                        setCollections(collections.map((collection) => c === collection ? ({ ...c, disabled: !c.disabled}) : c))
-                      }}
-                    >
-                      <i className="fas fa-fw fa-table" />
-                    </button> */}
-                    {c.type === "neighborhoodSampling" ? (
-                      <button
-                        type="button"
-                        className="btn btn-light"
-                        title="Show neighborhood grid"
-                        onClick={() => {
-                          setVisibleNeighborhoodSamplings(c.data);
-                        }}
-                      >
-                        <i className="fas fa-fw fa-th" />
-                      </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      className="btn btn-danger"
-                      title="Delete collection"
-                      onClick={() => {
-                        setCollections(collections.filter((collection) => c !== collection));
-                      }}
-                    >
-                      <i className="fas fa-fw fa-times" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </>
-          </DetailsSummaryWrapper>
-        ) : null}
         <ComputeEmbeddingsForm
           addCollection={(collection) => setCollections([...collections, collection])}
           loading={loading}
@@ -333,6 +305,19 @@ export function EmbeddingPage({
           loading={loading}
           setLoading={setLoading}
         />
+        <RecomputeEmbeddingsForm
+          collections={collections}
+          setCollections={setCollections}
+          selection={selection}
+          loading={loading}
+          setLoading={setLoading}
+        />
+        <StonedSelfiesForm
+          addCollection={(collection) => setCollections([...collections, collection])}
+          selection={selection}
+          loading={loading}
+          setLoading={setLoading}
+        />
       </HorizontalCollapse>
       {/*<div className="mt-5" style={{ position: "relative", width: 0 }}>
         <div className="sticky-top" style={{ top: "20%", width: 100 }}>
@@ -347,323 +332,400 @@ export function EmbeddingPage({
           ) : null}
         </div>
       </div>*/}
-      <div
-        // className="col-md-10"
+      <Split
+        // minSize={250}
+        gutterSize={5}
+        sizes={[75, 25]}
+        className={`split col-${optionsCollapsed ? "12" : "9"}`}
         style={{
-          display: "flex",
-          flex: 1,
-          flexDirection: "column",
-          marginLeft: 33,
-          marginRight: 33,
           height: "100%",
-          overflow: "auto",
-          // overflow
+          paddingLeft: optionsCollapsed ? 40 : 0,
+          // marginRight: 40,
+        }}
+        onDragEnd={() => {
+          window.dispatchEvent(new Event('resize'));
         }}
       >
-        <LoadingPage
-          loading={loading && collections.length === 0}
-          fallback="Please select structures for embedding"
-          loadingText="Computing embedding of structures..."
+        <div
+          // className="col-md-10"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+            overflow: "auto",
+            paddingRight: 15,
+          }}
         >
-          {collections.length > 0 ? (
-            <>
-              <details>
-                <summary>
-                  Projections ({enabledProjections.length} out of {availableProjections.length})
-                </summary>
-                <form className="form-inline" style={{ alignItems: "baseline", flexFlow: "row" }}>
-                  {availableProjections.map((projection) => (
-                    <div className="form-check form-check-inline">
-                      <input
-                        className="form-check-input"
-                        type="checkbox"
-                        id={`projection${projection}Checkbox`}
-                        checked={enabledProjections.includes(projection)}
-                        onChange={(e) =>
-                          setEnabledProjections(
-                            e.currentTarget.checked
-                              ? [...enabledProjections, projection]
-                              : enabledProjections.filter((p) => p !== projection)
-                          )
-                        }
-                      />
-                      <label className="form-check-label" htmlFor={`projection${projection}Checkbox`}>
-                        {projection}
-                      </label>
-                    </div>
-                  ))}
-                </form>
-              </details>
-              {[
-                {
-                  name: "General",
-                  plotOptions,
-                  setter: (options: Partial<IPlotOptions>) => setPlotOptions({ ...plotOptions, ...options }),
-                },
-                ...collections.map((collection) => ({
-                  name: collection.name,
-                  plotOptions: collection.plotOptions || {},
-                  setter: (options: Partial<IPlotOptions>) =>
-                    setCollections(
-                      collections.map((c) =>
-                        c === collection
-                          ? {
-                              ...c,
-                              plotOptions: {
-                                ...(c.plotOptions || {}),
-                                ...options,
-                              },
-                            }
-                          : c
-                      )
-                    ),
-                })),
-              ].map(({ name, setter, plotOptions }, i) => (
-                <details open={i === 0}>
+          <LoadingPage
+            loading={loading && collections.length === 0}
+            fallback="Please select structures for embedding"
+            loadingText="Computing embedding of structures..."
+          >
+            {collections.length > 0 ? (
+              <>
+                <details>
                   <summary>
-                    {name} Options ({Object.values(plotOptions).filter(Boolean).length})
+                    <h6 className="d-inline-block">
+                      Plot Options <small className="text-muted">to customize the projection plots</small>
+                    </h6>
                   </summary>
-                  <form className="form-inline" style={{ alignItems: "baseline", flexFlow: "row" }}>
-                    <PlotSelect
-                      id={`colorEncoding${i}Select`}
-                      label="Color Encoding"
-                      // disabled={groupBy !== null}
-                      option={plotOptions.colorBy}
-                      options={availableProperties}
-                      setOption={(colorCoding: string) => {
-                        setter({ colorBy: colorCoding });
-                      }}
-                    />
-                    <PlotSelect
-                      id={`opacity${i}Select`}
-                      label="Opacity By"
-                      // disabled={colorCoding !== null}
-                      option={typeof plotOptions.opacityBy === "number" ? "constant" : plotOptions.opacityBy}
-                      options={availableOpacityProperties}
-                      setOption={(opacityBy: string) => {
-                        setter({ opacityBy: opacityBy === "constant" ? 0.5 : opacityBy });
-                      }}
-                    />
-                    {typeof plotOptions.opacityBy === "number" ? (
-                      <div className="form-group mr-sm-2">
-                        {/* <label for="formControlRange">Example Range input</label> */}
-                        <input
-                          type="range"
-                          className="form-control-range"
-                          min={0}
-                          max={1}
-                          step={0.01}
-                          value={plotOptions.opacityBy}
-                          onChange={(e) => {
-                            setter({ opacityBy: e.currentTarget.valueAsNumber });
+                  <div className="ms-3">
+                    {[
+                      {
+                        name: "General",
+                        plotOptions,
+                        setter: (options: Partial<IPlotOptions>) => setPlotOptions({ ...plotOptions, ...options }),
+                      },
+                      ...collections.map((collection) => ({
+                        name: collection.name,
+                        plotOptions: collection.plotOptions || {},
+                        setter: (options: Partial<IPlotOptions>) =>
+                          setCollections(
+                            collections.map((c) =>
+                              c === collection
+                                ? {
+                                    ...c,
+                                    plotOptions: {
+                                      ...(c.plotOptions || {}),
+                                      ...options,
+                                    },
+                                  }
+                                : c
+                            )
+                          ),
+                      })),
+                    ].map(({ name, setter, plotOptions }, i) => (
+                      <details open={i === 0}>
+                        <summary>
+                          {name} Options{" "}
+                          <small className="text-muted">{Object.values(plotOptions).filter(Boolean).length}</small>
+                        </summary>
+                        <ProjectionSettingsForm
+                          inline={true}
+                          availableNearestNeighbors={availableNearestNeighbors}
+                          availableClusters={availableClusters}
+                          availableConnectByProperties={availableConnectByProperties}
+                          availableProperties={availableProperties}
+                          availableOpacityProperties={availableOpacityProperties}
+                          setConfig={(newConfig) => setter(newConfig.plotOptions)}
+                          config={{
+                            label: "General",
+                            value: "",
+                            projection: "",
+                            plotOptions,
                           }}
                         />
-                      </div>
-                    ) : null}
-                    <PlotSelect
-                      id={`grouping${i}Select`}
-                      label="Group By"
-                      // disabled={colorCoding !== null}
-                      option={plotOptions.groupBy}
-                      options={availableProperties}
-                      setOption={(groupBy: string) => {
-                        setter({ groupBy });
-                      }}
-                    />
-                    <PlotSelect
-                      id={`sizeBy${i}Select`}
-                      label="Size by"
-                      option={plotOptions.sizeBy}
-                      options={availableProperties}
-                      setOption={(sizeBy: string) => {
-                        setter({ sizeBy });
-                      }}
-                    />
-                    <PlotSelect
-                      id={`connectBy${i}Select`}
-                      label="Connect by"
-                      multi={true}
-                      option={plotOptions.connectBy}
-                      options={availableProperties}
-                      setOption={(option: string[]) => {
-                        setter({ connectBy: option.length === 0 ? null : option });
-                      }}
-                    />
-                  </form>
+                      </details>
+                    ))}
+                  </div>
                 </details>
-              ))}
-              <div className="row m-0" style={{ position: "relative" }}>
-                <Grid>
-                  <GridItemOptions
-                    key="Custom"
-                    gridOptions={{
-                      w: 12,
-                      h: 25,
-                      y: 0,
-                      x: 0,
-                    }}
-                  >
-                    <ScatterPlot
-                      title={customX && customY ? `${customX} vs. ${customY}` : "Please select two axis properties"}
-                      collections={filteredCollections}
-                      options={plotOptions}
-                      hover={hover}
-                      setHover={setHover}
-                      selected={selection}
-                      setSelected={setSelection}
-                      xAccessor={`properties.${customX}`}
-                      yAccessor={`properties.${customY}`}
+
+                <details className="row" style={{ position: "relative" }} open={true}>
+                  <summary>
+                    <h6 className="d-inline-block">
+                      Parallel Coordinates <small className="text-muted">to compare multiple numeric properties</small>
+                    </h6>
+                  </summary>
+                  <ParallelCoordinatesPlot
+                    collections={filteredCollections}
+                    selection={selection}
+                    setSelection={setSelection}
+                  />
+                </details>
+
+                <details className="row" style={{ position: "relative" }} open={true}>
+                  <summary>
+                    <h6 className="d-inline-block">
+                      Custom Plot <small className="text-muted">to compare two arbitrary properties</small>
+                    </h6>
+                  </summary>
+                  <Grid>
+                    <GridItemOptions
+                      key="Custom"
+                      gridOptions={{
+                        w: 12,
+                        h: 25,
+                        y: 0,
+                        x: 0,
+                      }}
+                      onSettings={() => setEditProjection(customPlotSettings || {
+                        label: 'Custom',
+                        value: 'Custom',
+                        projection: null,
+                        plotOptions: {}
+                      })}
                     >
-                      <div
-                        style={{
-                          width: 150,
-                          position: "absolute",
-                          left: -45,
-                          top: "50%",
-                          transform: "rotate(-90deg)",
-                        }}
+                      <ScatterPlot
+                        title={customX && customY ? `${customX} vs. ${customY}` : "Please select two axis properties"}
+                        collections={filteredCollections}
+                        options={{ ...plotOptions, ...pickBy(customPlotSettings?.plotOptions || {}, (v) => v) }}
+                        hover={hover}
+                        setHover={setHover}
+                        selected={selection}
+                        setSelected={setSelection}
+                        xAccessor={`properties.${customX}`}
+                        yAccessor={`properties.${customY}`}
                       >
-                        <PlotSelect
-                          options={availableProperties}
-                          option={customY}
-                          setOption={(v: string) => setCustomY(v)}
-                          id="customYSelect"
-                        />
-                      </div>
-                      <div
-                        style={{
-                          width: 150,
-                          position: "absolute",
-                          left: "40%",
-                          bottom: 0,
-                        }}
-                      >
-                        <PlotSelect
-                          options={availableProperties}
-                          option={customX}
-                          setOption={(v: string) => setCustomX(v)}
-                          id="customXSelect"
-                        />
-                      </div>
-                    </ScatterPlot>
-                  </GridItemOptions>
-                  <GridItemOptions
-                    key="Embedding"
-                    gridOptions={{
-                      w: 12,
-                      h: 25,
-                      y: 25,
-                      x: 0,
-                    }}
-                  >
-                    <ScatterPlot
-                      title="Latent Space"
-                      collections={latentSpaceCollections}
-                      options={plotOptions}
-                      hover={hover}
-                      setHover={(hover) => {
-                        setHover(
-                          hover
-                            ? collections
-                                .find((c) => c.name === hover.collection)
-                                ?.data.find((d) => d.index === hover.index) || null
-                            : null
-                        );
-                      }}
-                      selected={selection}
-                      setSelected={(selected) => {
-                        setSelection(selected);
-                      }}
-                      xAccessor={`properties[latentX]`}
-                      yAccessor={`properties[latentY]`}
-                    />
-                  </GridItemOptions>
-                  {
-                    (enabledProjections.length > 0 ? enabledProjections : availableProjections).map((projection, i) => (
+                        <div
+                          style={{
+                            width: 150,
+                            position: "absolute",
+                            left: -45,
+                            top: "50%",
+                            transform: "rotate(-90deg)",
+                          }}
+                        >
+                          <select
+                            className="form-control form-control-sm"
+                            value={customY || ""}
+                            onChange={(e) => setCustomY(e.currentTarget.value || null)}
+                          >
+                            <option value="">Select...</option>
+                            {availableProperties.map((p) => (
+                              <option key={p}>{p}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div
+                          style={{
+                            width: 150,
+                            position: "absolute",
+                            left: "40%",
+                            bottom: 0,
+                          }}
+                        >
+                          <select
+                            className="form-control form-control-sm"
+                            value={customX || ""}
+                            onChange={(e) => setCustomX(e.currentTarget.value || null)}
+                          >
+                            <option value="">Select...</option>
+                            {availableProperties.map((p) => (
+                              <option key={p}>{p}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </ScatterPlot>
+                    </GridItemOptions>
+                  </Grid>
+                </details>
+
+                <details className="row" style={{ position: "relative" }} open={true}>
+                  <summary>
+                    <h6 className="d-inline-block">
+                      Latent Space Visualization <small className="text-muted"></small>
+                    </h6>
+                  </summary>
+                  <Grid>
+                    {Object.keys(latentSpaceCollections || []).map((embedding) => (
                       <GridItemOptions
-                        key={projection}
+                        key={embedding}
                         gridOptions={{
-                          w: 6,
+                          w: 12,
                           h: 25,
-                          y: 50 + Math.floor(i / 2) * 25,
-                          x: i % 2 === 0 ? 0 : 6,
+                          y: 0,
+                          x: 0,
                         }}
                       >
                         <ScatterPlot
-                          title={projection}
-                          collections={filteredCollections}
+                          title={`Top ${NR_OF_LATENT_SPACE_PARTICLES} in ${embedding.toUpperCase()} Latent Space`}
+                          collections={latentSpaceCollections![embedding]}
                           options={plotOptions}
                           hover={hover}
-                          setHover={setHover}
+                          setHover={(hover) => {
+                            setHover(
+                              hover
+                                ? collections
+                                    .find((c) => c.name === hover.collection)
+                                    ?.data.find((d) => d.index === hover.index) || null
+                                : null
+                            );
+                          }}
                           selected={selection}
-                          setSelected={setSelection}
-                          xAccessor={`projection[${projection}][0]`}
-                          yAccessor={`projection[${projection}][1]`}
+                          setSelected={(selected) => {
+                            setSelection(selected);
+                          }}
+                          xAccessor={`properties[latentX]`}
+                          yAccessor={`properties[latentY]`}
                         />
                       </GridItemOptions>
-                    )) as any
+                    ))}
+                  </Grid>
+                </details>
+
+                <details open={true}>
+                  <summary>
+                    <h6 className="d-inline-block">
+                      Projections{" "}
+                      <small className="text-muted">
+                        {enabledProjections.length} out of {availableProjections.length}
+                      </small>
+                    </h6>
+                  </summary>
+                  <CreatableSelect<IEnabledProjection, true>
+                    isMulti
+                    name="projections"
+                    value={enabledProjections}
+                    onChange={(e) => {
+                      setEnabledProjections(e.map((v) => v));
+                    }}
+                    onCreateOption={(label) => {
+                      const newOption: IEnabledProjection = {
+                        label: label,
+                        value: label,
+                        projection: "",
+                        plotOptions: {},
+                      };
+                      setEnabledProjections([...enabledProjections, newOption]);
+                      setEditProjection(newOption);
+                    }}
+                    options={availableProjections.map((p) => ({
+                      label: p,
+                      value: p,
+                      projection: p,
+                      plotOptions: {},
+                    }))}
+                    closeMenuOnSelect={false}
+                  />
+                  <div className="row" style={{ position: "relative" }}>
+                    <Grid>
+                      {
+                        enabledProjections
+                          // .filter((p) => availableProjections.includes(p.projection))
+                          .map((config, i) => (
+                            <GridItemOptions
+                              key={config.value}
+                              onClose={() => {
+                                setEnabledProjections(enabledProjections.filter((p) => p !== config));
+                              }}
+                              onSettings={() => setEditProjection(config)}
+                              gridOptions={{
+                                w: 6,
+                                h: 25,
+                                y: 0 + Math.floor(i / 2) * 25,
+                                x: i % 2 === 0 ? 0 : 6,
+                              }}
+                              renderInfo={() => (
+                                <>
+                                  {filteredCollections.map((c) => (
+                                    <div className="d-flex flex-column">
+                                      <strong className="text-nowrap text-truncate">{c.name}</strong>
+                                      {Object.entries(c.projections?.[config.projection!] || {})
+                                        .filter(([key, value]) => typeof value === "number")
+                                        .map(([key, value]) => (
+                                          <div className="text-nowrap d-flex">
+                                            <span className="text-truncate">{key}</span>
+                                            <span className="flex-fill">
+                                              : {(value as number).toFixed(3) || "Not available"}
+                                            </span>
+                                          </div>
+                                        ))}
+                                    </div>
+                                  ))}
+                                </>
+                              )}
+                            >
+                              <ScatterPlot
+                                title={config.value}
+                                collections={filteredCollections}
+                                // Pick only "valid" values, as otherwise null would override the previous value
+                                options={{ ...plotOptions, ...pickBy(config.plotOptions, (v) => v) }}
+                                hover={hover}
+                                setHover={setHover}
+                                selected={selection}
+                                setSelected={setSelection}
+                                xAccessor={`projection[${config.projection}][0]`}
+                                yAccessor={`projection[${config.projection}][1]`}
+                              />
+                            </GridItemOptions>
+                          )) as any
+                      }
+                    </Grid>
+                  </div>
+                </details>
+
+                <StructureCardGrid
+                  collections={visibleCollections}
+                  selected={selection}
+                  setSelected={setSelection}
+                  setFiltered={setFiltered}
+                  tableClass="main-ranking"
+                  structureCardProps={(structure) => ({
+                    className: structure === hover ? "border-primary" : structure.selected ? "border-secondary" : "",
+                  })}
+                  renderTopForm={
+                    <>
+                      <div className="form-check form-switch me-sm-2">
+                        <input
+                          type="checkbox"
+                          className="form-check-input"
+                          id="customSwitch1"
+                          checked={showSelectedOnly}
+                          onChange={(e) => setShowSelectedOnly(e.currentTarget.checked)}
+                        />
+                        <label className="form-check-label" htmlFor="customSwitch1">
+                          Show selected only
+                        </label>
+                      </div>
+                      <button
+                        className="btn btn-sm btn-primary"
+                        disabled={!selection}
+                        onClick={() => {
+                          setInterpolationStructures(
+                            Object.values(selection!)
+                              .flat()
+                              .map(({ structure }) => structure)
+                          );
+                          setActiveTab(EActiveTabs.INTERPOLATION);
+                        }}
+                      >
+                        Use for interpolation
+                      </button>
+                    </>
                   }
-                </Grid>
-              </div>
-              <StructureCardGrid
-                collections={visibleCollections}
-                selected={selection}
-                setSelected={setSelection}
-                setFiltered={setFiltered}
-                clusters={clusters}
-                tableClass="main-ranking"
-                structureCardProps={(structure) => ({
-                  className: structure === hover ? "border-primary" : structure.selected ? "border-secondary" : "",
-                })}
-                renderTopForm={
-                  <>
-                    <div className="custom-control custom-switch mr-sm-2">
-                      <input
-                        type="checkbox"
-                        className="custom-control-input"
-                        id="customSwitch1"
-                        checked={showSelectedOnly}
-                        onChange={(e) => setShowSelectedOnly(e.currentTarget.checked)}
-                      />
-                      <label className="custom-control-label" htmlFor="customSwitch1">
-                        Show selected only
-                      </label>
-                    </div>
-                    <button
-                      className="btn btn-sm btn-primary"
-                      disabled={!selection}
-                      onClick={() => {
-                        setInterpolationStructures(
-                          Object.values(selection!)
-                            .flat()
-                            .map(({ structure }) => structure)
-                        );
-                        setActiveTab(EActiveTabs.INTERPOLATION);
-                      }}
-                    >
-                      Use for interpolation
-                    </button>
-                  </>
-                }
-              />
-            </>
-          ) : null}
-        </LoadingPage>
-      </div>
-      <HorizontalCollapse
-        label="Clusters"
+                />
+              </>
+            ) : null}
+          </LoadingPage>
+        </div>
+        <div>
+          {/* <HorizontalCollapse
+        label="Collections"
         position="right"
-        size="col-md-2"
+        size="col-md-4"
         collapsed={clusterCollapsed}
         setCollapsed={setClusterCollapsed}
-      >
-        <ClusterSidePanel
-          clusters={clusters}
-          setClusters={setClusters}
-          selected={selection}
-          setSelected={setSelection}
-        />
-      </HorizontalCollapse>
+      > */}
+          <ReactResizeDetector handleWidth>
+            {({ width, height }) => (
+              <div
+                style={{
+                  height: "100%",
+                  overflow: "auto",
+                  paddingRight: 15,
+                }}
+              >
+                {width! > 200 ? (
+                  <ClusterSidePanel
+                    collections={collections}
+                    setCollections={setCollections}
+                    selection={selection}
+                    setSelection={setSelection}
+                    setVisibleNeighborhoodSamplings={setVisibleNeighborhoodSamplings}
+                    hover={hover}
+                    setHover={setHover}
+                  />
+                ) : (
+                  <span style={{ transform: "rotate(90deg)", position: "absolute", top: "50%", whiteSpace: "nowrap" }}>
+                    Additional Options
+                  </span>
+                )}
+              </div>
+            )}
+          </ReactResizeDetector>
+          {/* </HorizontalCollapse> */}
+        </div>
+      </Split>
     </>
   );
 }

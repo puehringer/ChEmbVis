@@ -6,6 +6,7 @@ import { FormWrapper } from "./FormWrapper";
 import { UseStructureInputAddon } from "../UseStructureInputAddon";
 import { Alert } from "react-bootstrap";
 import { CurveEditorModal } from "../CurveEditorModal";
+import { useNameInput } from "../../utils/hooks";
 
 export const MSOForm = ({
   availableObjectives,
@@ -20,7 +21,7 @@ export const MSOForm = ({
   loading: boolean;
   setLoading(loading: boolean): void;
 }) => {
-  const [name, setName] = React.useState<string>("MSO");
+  const [name, setName, nameInput] = useNameInput("msoNameInput", "MSO");
   const [msoStartingStructure, setMsoStartingStructure] = React.useState<string>("");
   const [nrOfParticles, setNrOfParticles] = React.useState<number>(50);
   const [nrOfIterations, setNrOfIterations] = React.useState<number>(10);
@@ -41,7 +42,7 @@ export const MSOForm = ({
       loading={loading}
       setLoading={setLoading}
       onSubmit={async () => {
-        const data = await runMSO({
+        const msoCollection = await runMSO({
           structure: msoStartingStructure,
           iterations: nrOfIterations,
           num_swarms: nrOfSwarms,
@@ -55,7 +56,8 @@ export const MSOForm = ({
           objectives,
         });
 
-        addCollection({ data, name });
+        addCollection({ ...msoCollection, name });
+        setName("");
       }}
     >
       {desirabilityCurveObjective ? (
@@ -71,9 +73,10 @@ export const MSOForm = ({
           }}
         />
       ) : null}
+      {nameInput}
       {availableObjectives ? (
         <>
-          <div className="form-group">
+          <div className="mb-3">
             <label htmlFor="msoObjectivesSelect">Objectives</label>
             <div className="input-group input-group-sm">
               <select
@@ -100,7 +103,6 @@ export const MSOForm = ({
                   flex: "0 0 1px",
                 }}
               />
-              <div className="input-group-append">
                 <button
                   disabled={!selectedObjective}
                   className="btn btn-outline-secondary"
@@ -109,18 +111,17 @@ export const MSOForm = ({
                 >
                   Add
                 </button>
-              </div>
             </div>
             <small id="msoObjectivesSelect" className="form-text text-muted">
               Objectives define the optimization goal of MSO
             </small>
           </div>
-          <div className="form-group" style={{ overflowX: "hidden" }}>
+          <div className="mb-3" style={{ overflowX: "hidden" }}>
             {objectives.map((objective) => (
               <details key={objective.name} className="mb-1" open={Boolean(objective.additional_args)}>
                 <summary className="text-truncate">
                   {objective.name}{" "}
-                  <div className="btn-group btn-group-sm ml-2 mr-2 float-right" role="group">
+                  <div className="btn-group btn-group-sm ms-2 me-2 float-end" role="group">
                     <button
                       type="button"
                       className="btn btn-light"
@@ -147,10 +148,10 @@ export const MSOForm = ({
                   {objective.description}
                 </small>
                 <div className="d-flex" title="Relative weight of objective">
-                  {/* <label for="formControlRange">Example Range input</label> */}
+                  {/* <label for="formControlRange" className="form-label">Example Range input</label> */}
                   <input
                     type="range"
-                    className="form-control-range mr-2"
+                    className="form-range me-2"
                     min={1}
                     max={100}
                     step={1}
@@ -200,18 +201,7 @@ export const MSOForm = ({
               </details>
             ))}
           </div>
-          <div className="form-group">
-            <label htmlFor="msoNameInput">Name</label>
-            <input
-              type="text"
-              className="form-control form-control-sm"
-              id="msoNameInput"
-              required
-              value={name}
-              onChange={(e) => setName(e.currentTarget.value)}
-            />
-          </div>
-          <div className="form-group">
+          <div className="mb-3">
             <label htmlFor="startingStructureInput">Starting structure</label>
             <div className="input-group input-group-sm">
               <UseStructureInputAddon
@@ -233,7 +223,7 @@ export const MSOForm = ({
           </div>
           <details>
             <summary>Advanced Settings</summary>
-            <div className="form-group">
+            <div className="mb-3">
               <label htmlFor="nrOfSwarmsInput">Swarms</label>
               <input
                 type="number"
@@ -245,7 +235,7 @@ export const MSOForm = ({
                 onChange={(e) => setNrOfSwarms(e.currentTarget.valueAsNumber)}
               />
             </div>
-            <div className="form-group">
+            <div className="mb-3">
               <label htmlFor="nrOfParticlesInput">Particles</label>
               <input
                 type="number"
@@ -257,7 +247,7 @@ export const MSOForm = ({
                 onChange={(e) => setNrOfParticles(e.currentTarget.valueAsNumber)}
               />
             </div>
-            <div className="form-group">
+            <div className="mb-3">
               <label htmlFor="nrOfIterationsInput">Iterations</label>
               <input
                 type="number"
@@ -269,7 +259,7 @@ export const MSOForm = ({
                 onChange={(e) => setNrOfIterations(e.currentTarget.valueAsNumber)}
               />
             </div>
-            <div className="form-group">
+            <div className="mb-3">
               <label htmlFor="vMinInput">Min Velocity</label>
               <input
                 type="number"
@@ -281,7 +271,7 @@ export const MSOForm = ({
                 onChange={(e) => setVMin(e.currentTarget.valueAsNumber)}
               />
             </div>
-            <div className="form-group">
+            <div className="mb-3">
               <label htmlFor="vMaxInput">Max Velocity</label>
               <input
                 type="number"
@@ -293,7 +283,7 @@ export const MSOForm = ({
                 onChange={(e) => setVMax(e.currentTarget.valueAsNumber)}
               />
             </div>
-            <div className="form-group">
+            <div className="mb-3">
               <label htmlFor="inertiaWeightInput">Inertia Weight</label>
               <input
                 type="number"
@@ -305,7 +295,7 @@ export const MSOForm = ({
                 onChange={(e) => setInertiaWeight(e.currentTarget.valueAsNumber)}
               />
             </div>
-            <div className="form-group">
+            <div className="mb-3">
               <label htmlFor="phi1Input">Phi 1</label>
               <input
                 type="number"
@@ -317,7 +307,7 @@ export const MSOForm = ({
                 onChange={(e) => setPhi1(e.currentTarget.valueAsNumber)}
               />
             </div>
-            <div className="form-group">
+            <div className="mb-3">
               <label htmlFor="phi2Input">Phi 2</label>
               <input
                 type="number"
@@ -329,7 +319,7 @@ export const MSOForm = ({
                 onChange={(e) => setPhi2(e.currentTarget.valueAsNumber)}
               />
             </div>
-            <div className="form-group">
+            <div className="mb-3">
               <label htmlFor="phi3Input">Phi 3</label>
               <input
                 type="number"
@@ -342,7 +332,7 @@ export const MSOForm = ({
               />
             </div>
           </details>
-          <div className="text-right">
+          <div className="text-end">
             <ButtonWithUpload
               loading={loading}
               text="Run MSO"

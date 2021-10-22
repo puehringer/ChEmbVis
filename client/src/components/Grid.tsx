@@ -11,12 +11,12 @@ declare type GridChild = React.ReactElement<{
 export const Grid = ({ children: _children }: { children: GridChild | GridChild[] }) => {
   const [layout, setLayout] = React.useState<Layout[] | null>();
 
-  const children = React.useMemo(() => (!_children || Array.isArray(_children) ? _children.flat() : [_children]), [
+  const children = React.useMemo(() => (!_children || Array.isArray(_children) ? _children.flat() : [_children]).filter((c) => c?.key), [
     _children,
   ]);
 
   React.useEffect(() => {
-    const validChildren = children.filter((c) => c.key != null);
+    const validChildren = children.filter((c) => c?.key != null);
     const missingLayout = validChildren.filter((c) => !layout?.find((l) => l.i === c.key));
 
     if (missingLayout.length > 0) {

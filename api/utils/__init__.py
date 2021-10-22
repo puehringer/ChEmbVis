@@ -1,7 +1,9 @@
 import time
 from ..constants import logger
 from .cache import cached
-from typing import List
+from typing import Any, List
+import numpy as np
+import rdkit
 
 
 pluck = lambda dict, *args: (dict[arg] for arg in args)
@@ -30,3 +32,16 @@ def parallelized(func, l):
     import multiprocessing
     num_cores = multiprocessing.cpu_count()
     return Parallel(n_jobs=num_cores)(delayed(func)(m) for m in l)
+
+
+def ensure_np_array(data: Any) -> np.ndarray:
+    # Ensure data is a list
+    if isinstance(data, np.ndarray):
+        return data
+    elif isinstance(data, list):
+        for i, d in enumerate(data):
+            if isinstance(d, np.ndarray):
+                data[i] = d.tolist()
+            elif isinstance(d, rdkit.DataStructs.cDataStructs.ExplicitBitVect):
+                data[i] = list(d)
+    return np.array(data)

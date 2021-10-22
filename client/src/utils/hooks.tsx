@@ -1,6 +1,7 @@
 import throttle from "lodash.throttle";
 import * as React from "react";
 import * as ReactDOM from "react-dom";
+import {CollectionContext} from '../CollectionContext';
 
 export function useSyncedRef<T>(value: T): React.MutableRefObject<T> {
   const valueRef = React.useRef<T>(value);
@@ -75,4 +76,40 @@ export function usePrevious<T>(value: T | null): T | null {
 
   // Return previous value (happens before update in useEffect above)
   return ref.current;
+}
+
+
+export function useNameInput(id: string, initialValue: string): [string, React.Dispatch<React.SetStateAction<string>>, React.ReactNode] {
+  const [name, setName] = React.useState<string>("");
+  const uniqueRef = React.useRef(id);
+  const collections = React.useContext(CollectionContext);
+
+  // Remove any [ ] . characters as they are matched with lodash.get and break lineup for example.
+  const currentName = (name || initialValue).replaceAll(/\[|\]|\./g, '_');
+
+  const nameAlreadyTaken = collections.some((c) => c.name === currentName);
+
+  return [currentName, setName, <div className="mb-3">
+    <label htmlFor={uniqueRef.current}>Name</label>
+    <input
+      type="text"
+      className={`form-control form-control-sm ${nameAlreadyTaken ? "is-invalid" : ""}`}
+      id={uniqueRef.current}
+      required={nameAlreadyTaken ? true : !initialValue} // Required depends if we have a valid placeholder
+      pattern={nameAlreadyTaken ? '^$' : undefined} // Add a regex matching only the empty string if the name is already taken
+      value={name}
+      placeholder={initialValue}
+      onChange={(e) => setName(e.currentTarget.value)}
+    />
+    {nameAlreadyTaken ? (
+      <div className="invalid-feedback">Collection with this name already exists.</div>
+    ) : null}
+  </div>];
+}
+
+export function timeIt<T>(name: string, f: () => T): T {
+  console.time(name);
+  const result = f();
+  console.timeEnd(name);
+  return result;
 }

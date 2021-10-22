@@ -3,10 +3,11 @@ from flask import Response, jsonify
 from flask_smorest import abort
 import requests
 from rdkit import DataStructs, Chem
-from rdkit.Chem import AllChem, TemplateAlign
+from rdkit.Chem import TemplateAlign
 from rdkit.Chem.Scaffolds import MurckoScaffold
 from ..utils import cached, mol, parallelized
-from ..constants import blp, logger, get_inference_model
+from ..constants import blp
+from ..models import embedding_models
 from ..schema import MoleculesImageArgsSchema, MoleculeImageArgsSchema, MoleculesSubstructureArgsSchema, MoleculesSubstructureSchema, MoleculesTanimotoSchema, MoleculesTanimotoArgsSchema
 
 
@@ -23,10 +24,11 @@ class MoleculeImageAPI(MethodView):
             TemplateAlign.rdDepictor.Compute2DCoords(structure_mol)
             # Find the maximum common substructure for aligning purposes
             mcs = mol.mols_to_mcs([structure_mol, align_mol]).queryMol
-            TemplateAlign.rdDepictor.Compute2DCoords(mcs)
-            TemplateAlign.AlignMolToTemplate2D(structure_mol, mcs, clearConfs=True)
-            # Enable this to show substructore highlights of alignment
-            # substructure = mcs
+            if mcs:
+                TemplateAlign.rdDepictor.Compute2DCoords(mcs)
+                TemplateAlign.AlignMolToTemplate2D(structure_mol, mcs, clearConfs=True)
+                # Enable this to show substructore highlights of alignment
+                # substructure = mcs
         svg = mol.mol_to_svg(structure_mol, substructure)
         if not svg:
             abort(404)
@@ -108,7 +110,7 @@ class TanimotoAPI(MethodView):
         fingerprint = args.get('fingerprint')
 
         if fingerprint == 'cddd':
-            return jsonify({'tanimoto': requests.post('http://api_umap:5000/api/similarity/', json={'reference': get_inference_model().seq_to_emb([reference]).tolist()[0]}).json()})
+            return jsonify({'tanimoto': requests.post('http://api_umap:5000/api/similarity/', json={'reference': embedding_models['cddd'].encode_single(reference) }).json()})
 
         reference_mol = Chem.MolFromSmiles(reference)
 
