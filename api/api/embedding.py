@@ -42,15 +42,15 @@ def get_embedding():
 @blp.response(200, ServerCollectionSchema)
 @cached
 def compute_embedding(args):
-    structures = args.get('structures')
+    raw_structures = args.get('structures')
     include_embedding = args.get('include_embedding')
 
     with joblib.parallel_backend('loky', n_jobs=2):
 
-        with catch_time(f'Filtering {len(structures)} structures'):
+        with catch_time(f'Filtering {len(raw_structures)} structures'):
             # structures = [s for s in structures if mol.is_valid_mol(s)]
             # Keep a preprocessed -> original map to send back the original structure too
-            structure_map = {s: key for (key, s) in map(lambda s: (s, mol.preprocess_smiles(s)), structures) if mol.is_valid_mol(s)}
+            structure_map = {new: original for (original, new) in map(lambda s: (s, mol.preprocess_smiles(s['smiles'])), raw_structures) if mol.is_valid_mol(new)}
             structures = list(structure_map.keys())
 
         computed_embeddings = {}
@@ -65,7 +65,7 @@ def compute_embedding(args):
 
             for i in range(len(nearest_neighbors)):
                 nearest_neighbors[i][key] = {
-                    'distance_metric': 'function' if callable(embedding.distance_metric) else embedding.distance_metric,
+                    'distance_metric': 'function' if callable(metric) else metric,
                     'knn_dist': all_dist[i],
                     'knn_ind': all_ind[i]
                 }
@@ -104,22 +104,38 @@ def compute_embedding(args):
                     'distance_metric': 'function' if callable(metric) else metric,
                     'label': str(labels[i])
                 }
+        # Compute everything for precomputed embeddings
+        # TODO: Combine with below function (as it is duplicated) 
+        try:
+            precomputed_embeddings = (list(structure_map.values())[0].get('embeddings') or {}).keys()
+            logger.info(f'Processing existing embeddings: {precomputed_embeddings}')
+            for key in precomputed_embeddings:
+                with catch_time(f'Computing {key} embedding for {len(structures)} structures'):
+                    computed_embedding = np.array([s['embeddings'][key] for s in structure_map.values()])
+                with catch_time(f'Computing pairwise distances for {key} (single job)'):
+                    distances = pairwise_distances(computed_embedding, metric='euclidean', n_jobs=1)
+                # with catch_time(f'Computing pairwise distances for {key} (multiple jobs)'):
+                #     distances = pairwise_distances(computed_embedding, metric=embedding.distance_metric)
+                with catch_time(f'Computing knn for {key}'):
+                    compute_nearest_neighbors(distances, metric='precomputed', key=key)
+                with catch_time(f'Computing clusters for {key}'):
+                    compute_clusters(distances.astype(np.float64), metric='precomputed', key=key)
+
+                computed_embeddings[key] = computed_embedding.tolist()
+        except Exception:
+            logger.exception(f'Error computing properties of passed embeddings')
 
         for key, embedding in embedding_models.items():
             try:
                 if embedding.can_encode:
                     with catch_time(f'Computing {key} embedding for {len(structures)} structures'):
-                        computed_embedding = embedding.encode(structures if not embedding.use_raw_smiles else [structure_map[smi] for smi in structures])
-
+                        computed_embedding = embedding.encode(structures if not embedding.use_raw_smiles else [structure_map[smi]['smiles'] for smi in structures])
                     with catch_time(f'Computing pairwise distances for {key} (single job)'):
                         distances = pairwise_distances(computed_embedding, metric=embedding.distance_metric, n_jobs=1)
-
                     # with catch_time(f'Computing pairwise distances for {key} (multiple jobs)'):
                     #     distances = pairwise_distances(computed_embedding, metric=embedding.distance_metric)
-
                     with catch_time(f'Computing knn for {key}'):
                         compute_nearest_neighbors(distances, metric='precomputed', key=key)
-
                     with catch_time(f'Computing clusters for {key}'):
                         compute_clusters(distances.astype(np.float64), metric='precomputed', key=key)
 
@@ -127,13 +143,10 @@ def compute_embedding(args):
             except Exception:
                 logger.exception(f'Error computing embedding for {key}')
 
-        # from mso.objectives import emb_functions, mol_functions
-        # egfr_scores = emb_functions.egfr_score_512(computed_embeddings['cddd'])
-        # bace_scores = emb_functions.bace_score_512(computed_embeddings['cddd']) 
-
         with catch_time(f'Computing projections for {len(structures)} structures'):
-            projections, projection = compute_all_projections(
-                {'smiles': structures, **computed_embeddings }, None)
+            projections, projection = compute_all_projections({'smiles': structures, **computed_embeddings }, None, {
+                'precomputed_embeddings': precomputed_embeddings
+            })
 
         # for key, value in projection.items():
         #     with catch_time(f'Computing pairwise distances for {key}'):
@@ -146,7 +159,7 @@ def compute_embedding(args):
     result = {
         'data': [{
             'structure': structure,
-            'original_structure': structure_map[structure],
+            'original_structure': structure_map[structure]['smiles'],
             # 'decoded': decoded_smiles_list[i],
             'embedding': { key: embedding[i] for key, embedding in computed_embeddings.items() } if include_embedding else None,
             'projection': {t: projection[t][0][i] for t in projections},

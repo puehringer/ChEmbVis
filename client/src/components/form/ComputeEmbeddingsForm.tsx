@@ -24,7 +24,7 @@ export const ComputeEmbeddingsForm = ({
       loading={loading}
       setLoading={setLoading}
       onSubmit={async () => {
-        const structures: string[] = [];
+        const structures: Parameters<typeof embedStructures>[0]['structures'] = [];
         const additional: { [key: string]: {[key: string]: string | number | boolean} } = {};
 
         const result = parse<{
@@ -39,6 +39,13 @@ export const ComputeEmbeddingsForm = ({
               return 'smiles';
             }
             return header.trim();
+          },
+          transform: (value, field) => {
+            if(field.toString().startsWith('emb_')) {
+              // Any value starting with emb_ will be parsed as JSON, such that [1.1, 1.2, 1.3] is a valid string
+              return JSON.parse(value);
+            }
+            return value;
           }
         });
 
@@ -47,7 +54,16 @@ export const ComputeEmbeddingsForm = ({
         }
 
         result.data.filter((d) => d.smiles).forEach(({smiles, ...rest}) => {
-          structures.push(smiles);
+          const embeddings: {[key: string]: number[]} = {};
+          Object.keys(rest).filter((key) => key.startsWith('emb_')).forEach((key) => {
+            embeddings[key] = rest[key] as any as number[];
+            delete rest[key];
+          })
+
+          structures.push({
+            smiles,
+            embeddings
+          });
           additional[smiles] = rest;
         })
 
@@ -84,7 +100,10 @@ export const ComputeEmbeddingsForm = ({
           onChange={(e) => setCdddInput(e.currentTarget.value)}
           value={cdddInput}
         />
-        <small id="cdddTextareaHelp" className="form-text text-muted">Any CSV file format with a header "smiles" is valid. You can add additional properties as columns, which will be shown in the visualizations and ranking.</small>
+        <small id="cdddTextareaHelp" className="form-text text-muted">
+          Any CSV file format with a header "smiles" is valid. You can add additional properties as columns, which will be shown in the visualizations and ranking. 
+          Additionally, any column starting with "emb_" will be parsed as JSON (value has to be an array like "[1.2, 1.3, 1.5, ...]") and used as precomputed embedding.
+        </small>
       </div>
       <div className="text-end">
         <ButtonWithUpload

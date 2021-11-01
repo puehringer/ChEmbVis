@@ -445,7 +445,7 @@ export const ClusterSidePanel = React.memo(
                         setHeatmapLoading(true);
                         const selectedWithEmbeddings = (
                           await embedStructures({
-                            structures: selectedParticles.map((p) => p.structure),
+                            structures: selectedParticles.map((p) => ({smiles: p.structure})),
                             include_embedding: true,
                           })
                         ).data;
@@ -529,7 +529,7 @@ export const ClusterSidePanel = React.memo(
                       ? {
                           name,
                           ...(await embedStructures({
-                            structures: data.map((d) => d.structure),
+                            structures: data.map((d) => ({smiles: d.structure})),
                             include_embedding: true,
                           })),
                         }

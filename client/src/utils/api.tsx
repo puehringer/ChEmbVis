@@ -44,7 +44,10 @@ export function runMSO(options: {
 }
 
 export function embedStructures(data: {
-  structures: string[];
+  structures: {
+    smiles: string;
+    embeddings?: {[key: string]: number[]};
+  }[];
   include_embedding?: boolean;
 }): Promise<IServerCollection<IParticle>> {
   return fetchJSON<IServerCollection<IParticle>>("/api/embedding/", data);

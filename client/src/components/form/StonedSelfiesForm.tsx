@@ -49,7 +49,7 @@ export const StonedSelfiesForm = ({
         if (structures.length === 0) {
           throw Error("No stoned selfies found");
         }
-        const embeddedCollection = await embedStructures({ structures, include_embedding: true });
+        const embeddedCollection = await embedStructures({ structures: structures.map((smiles) => ({smiles})), include_embedding: true });
         addCollection({
           name,
           ...embeddedCollection,

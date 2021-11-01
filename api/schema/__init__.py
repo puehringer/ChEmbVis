@@ -1,9 +1,13 @@
 import marshmallow as ma
 
 
+class EmbeddingStructureArgsSchema(ma.Schema):
+    smiles = ma.fields.String(required=True)
+    embeddings = ma.fields.Dict(required=False)
+
+
 class EmbeddingArgsSchema(ma.Schema):
-    structures = ma.fields.List(
-        ma.fields.String(), required=True, validate=ma.validate.Length(min=1))
+    structures = ma.fields.Nested(EmbeddingStructureArgsSchema, many=True, required=True, validate=ma.validate.Length(min=1))
     include_embedding = ma.fields.Boolean(missing=False)
 
 

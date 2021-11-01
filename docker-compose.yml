@@ -7,7 +7,9 @@ services:
     depends_on:
       - api_umap
       # - api_tsne
-    build: api
+    build:
+      context: ./api
+      dockerfile: ./api.Dockerfile
     volumes:
       # Code
       - ./api:/home/backend
@@ -19,7 +21,7 @@ services:
       - FLASK_ENV=development
       - FLASK_APP=app.py
     ports:
-      - 5000:5000
+      - 5050:5000
     # docker-compose 1.28+ supports GPU reservation: https://docs.docker.com/compose/gpu-support/#enabling-gpu-access-to-service-containers
     deploy:
       resources:
@@ -35,7 +37,7 @@ services:
       # - api_tsne
     build:
       context: ./api
-      dockerfile: ./slim.Dockerfile
+      dockerfile: ./api.slim.Dockerfile
     volumes:
       # Code
       - ./api:/home/backend
@@ -56,24 +58,24 @@ services:
             - capabilities:
               - gpu
   # Jupyter notebook container using same image of API for testing purposes
-  api_notebook:
-    image: cddd-explorer-api:latest
-    # Enable this to launch the jupyter API instead of the API itself
-    command: ["jupyter", "notebook", "--notebook-dir=/_shared", "--port=8880", "--no-browser", "--ip=0.0.0.0", "--allow-root"]
-    volumes:
-      # Shared folder
-      - ./api/_shared:/_shared
-    environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=all
-    ports:
-      - 8880:8880
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - capabilities:
-              - gpu
+  # api_notebook:
+  #   image: cddd-explorer-api:latest
+  #   # Enable this to launch the jupyter API instead of the API itself
+  #   command: ["jupyter", "notebook", "--notebook-dir=/_shared", "--port=8880", "--no-browser", "--ip=0.0.0.0", "--allow-root"]
+  #   volumes:
+  #     # Shared folder
+  #     - ./api/_shared:/_shared
+  #   environment:
+  #     - NVIDIA_VISIBLE_DEVICES=all
+  #     - NVIDIA_DRIVER_CAPABILITIES=all
+  #   ports:
+  #     - 8880:8880
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - capabilities:
+  #             - gpu
   api_umap:
     image: cddd-explorer-api-umap:latest
     build: api_umap
@@ -127,19 +129,19 @@ services:
       - 3000:3000
     depends_on:
       - api
-  client_prod:
-    image: cddd-explorer-client-prod:latest
-    build:
-      context: ./client
-      dockerfile: ./deploy/prod.Dockerfile
-    environment:
-      - NODE_ENV=production
-      - API_HOST=http://api:5000
-      - DATASETS_URL=https://drive.google.com/drive/folders/1m6O9ftkL66X1vnRfXO0ohjO4Ye4GjHYU?usp=sharing
-    ports:
-      - 3080:80
-    depends_on:
-      - api
+  # client_prod:
+  #   image: cddd-explorer-client-prod:latest
+  #   build:
+  #     context: ./client
+  #     dockerfile: ./deploy/prod.Dockerfile
+  #   environment:
+  #     - NODE_ENV=production
+  #     - API_HOST=http://api:5000
+  #     - DATASETS_URL=https://drive.google.com/drive/folders/1m6O9ftkL66X1vnRfXO0ohjO4Ye4GjHYU?usp=sharing
+  #   ports:
+  #     - 3080:80
+  #   depends_on:
+  #     - api
   # notebook:
   #   build: notebook
   #   ports:

@@ -56,7 +56,7 @@ export const MatchedMolecularPairsForm = ({
         if(structures.length === 0) {
           throw Error('No matching pairs found');
         }
-        const embeddedCollection = await embedStructures({structures, include_embedding: true});
+        const embeddedCollection = await embedStructures({structures: structures.map((smiles) => ({smiles})), include_embedding: true});
         addCollection({
           name,
           ...embeddedCollection

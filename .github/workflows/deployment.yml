@@ -55,7 +55,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: ./api
-          file: ./api/slim.Dockerfile
+          file: ./api/api.slim.Dockerfile
           push: true
           tags: ${{ steps.meta-api-slim.outputs.tags }}
           labels: ${{ steps.meta-api-slim.outputs.labels }}

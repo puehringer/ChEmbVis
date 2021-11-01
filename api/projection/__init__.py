@@ -240,6 +240,25 @@ def compute_all_projections(data, additional, options={}):
                     successful_projections[t] = projection[3]
             except Exception:
                 logger.exception(f'Error computing projection {t}')
+
+    # Compute some predefined models for the precomputed embeddings
+    precomputed_embeddings = options.get('precomputed_embeddings', [])
+    for p in precomputed_embeddings:
+        for type, model in [
+            ('pca', SKLearnProjectionModel(p, decomposition.PCA(n_components=2))),
+            # ('tsne', SKLearnProjectionModel(p, manifold.TSNE(n_components=2, perplexity=30))),
+            ('umap', RemoteProjectionModel(p)),
+            ('densmap', RemoteProjectionModel(p, model_options={'densmap': True})),
+        ]:
+            with catch_time(f'Computing another model for {p}'):
+                try:
+                    t = f'{p}_{type}'
+                    projection = compute_projections(data, additional, {'type': t, 'model': model})
+                    if projection[0] or projection[1]:
+                        projections[t] = projection
+                        successful_projections[t] = projection[3]
+                except Exception:
+                    logger.exception(f'Error computing another model for {p}')
     return successful_projections, projections
 
 
