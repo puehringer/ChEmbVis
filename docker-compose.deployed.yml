@@ -1,0 +1,24 @@
+version: "2.3"
+
+services:
+  # Main API container
+  deployed_api:
+    image: ghcr.io/puehringer/chembvis_api_slim:main
+    # ports:
+      # - 5000:5000
+    # docker-compose 1.28+ supports GPU reservation: https://docs.docker.com/compose/gpu-support/#enabling-gpu-access-to-service-containers
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities:
+              - gpu
+  deployed_client:
+    image: ghcr.io/puehringer/chembvis_web:main
+    ports:
+      - 3000:80
+    environment:
+      - API_HOST=http://deployed_api:5000
+      - DATASETS_URL=https://drive.google.com/drive/folders/1m6O9ftkL66X1vnRfXO0ohjO4Ye4GjHYU?usp=sharing
+    depends_on:
+      - deployed_api
