@@ -7,7 +7,7 @@ import Select, { OptionsType } from "react-select";
 import isEqual from "lodash.isequal";
 import { GridItemOptions } from "./GridItemOptions";
 import { Grid } from "./Grid";
-import { DEFAULT_COLORWAY } from "../utils/constants";
+import { DEFAULT_COLORWAY, DEFAULT_PLOTLY_COLORSCALE } from "../utils/constants";
 
 export interface IParallelCoordinatesPlotProps {
   collections: ICollection[];
@@ -64,14 +64,15 @@ export const ParallelCoordinatesPlot = React.memo(({ collections, selection, set
       }
 
       const filtered = Object.values(filterSelection || {}).flat();
-      const all = filtered.length > 0 ? filtered : filteredCollections.map((c) => c.data).flat();
+      const all = filtered.length > 0 ? filtered : filteredCollections.map((c) => c.data).flat().slice(0, 500);
 
       const newFigureState: Figure = {
         frames: [],
         layout: {
           ...(figureState?.layout || {}),
           autosize: true,
-          colorway: DEFAULT_COLORWAY
+          colorway: DEFAULT_COLORWAY,
+          showlegend: true,
         },
         data: [
           {
@@ -80,9 +81,14 @@ export const ParallelCoordinatesPlot = React.memo(({ collections, selection, set
             line: {
               //   // TODO Make semi-transparent,
               // @ts-ignore
-              showscale: colorProperty ? true : false,
+              showscale: colorProperty ? false : false,
+              // colorscale: [
+              //   ['0.0', DEFAULT_COLORWAY[0] + '0a'],
+              //   ['1.0', DEFAULT_COLORWAY[1] + '0a']
+              // ],
               // If we don't have a numeric scale, use a color map for the filteredCollections instead
-              colorscale: colorProperty ? "Portland" : filteredCollections.map((c, i) => [i, DEFAULT_COLORWAY[i]]),
+              // colorscale: colorProperty ? "Portland" : filteredCollections.map((c, i) => [i, DEFAULT_COLORWAY[i]]),
+              ...DEFAULT_PLOTLY_COLORSCALE,
               color: colorProperty ? all.map((p) => p.properties![colorProperty.value] as number) : filteredCollections.map((c, i) => Array(c.data.length).fill(i.toString())).flat(),
             },
             // @ts-ignore
@@ -107,6 +113,7 @@ export const ParallelCoordinatesPlot = React.memo(({ collections, selection, set
           },
         ],
       };
+      console.log(newFigureState)
       return newFigureState;
     });
   }, [filteredCollections, filterSelection, enabledProperties, constraintRange, colorProperty]);

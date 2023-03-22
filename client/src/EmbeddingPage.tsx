@@ -62,9 +62,9 @@ export function EmbeddingPage({
   const [optionsCollapsed, setOptionsCollapsed] = React.useState<boolean>(false);
   const [enabledProjections, setEnabledProjections] = React.useState<IEnabledProjection[]>([
     {
-      label: "chembl_umap",
-      value: "chembl_umap",
-      projection: "chembl_umap",
+      label: "ecfp4_umap",
+      value: "ecfp4_umap",
+      projection: "ecfp4_umap",
       plotOptions: {},
     },
   ]);

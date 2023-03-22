@@ -3,19 +3,19 @@ version: "2.3"
 services:
   # Main API container
   api:
-    image: cddd-explorer-api:latest
-    depends_on:
-      - api_umap
+    # depends_on:
+      # - api_umap
       # - api_tsne
     build:
       context: ./api
-      dockerfile: ./api.Dockerfile
+      dockerfile: ./api.slim.Dockerfile  # Switch to api.Dockerfile for full API
     volumes:
       # Code
       - ./api:/home/backend
       # Shared folder
       - ./api/_shared:/_shared
     environment:
+      - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
       - FLASK_ENV=development
@@ -23,40 +23,12 @@ services:
     ports:
       - 5050:5000
     # docker-compose 1.28+ supports GPU reservation: https://docs.docker.com/compose/gpu-support/#enabling-gpu-access-to-service-containers
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - capabilities:
-              - gpu
-  # Main API container
-  api_slim:
-    image: cddd-explorer-api:latest
-    depends_on:
-      - api_umap
-      # - api_tsne
-    build:
-      context: ./api
-      dockerfile: ./api.slim.Dockerfile
-    volumes:
-      # Code
-      - ./api:/home/backend
-      # Shared folder
-      - ./api/_shared:/_shared
-    environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=all
-      - FLASK_ENV=development
-      - FLASK_APP=app.py
-    ports:
-      - 5000:5000
-    # docker-compose 1.28+ supports GPU reservation: https://docs.docker.com/compose/gpu-support/#enabling-gpu-access-to-service-containers
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - capabilities:
-              - gpu
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - capabilities:
+    #           - gpu
   # Jupyter notebook container using same image of API for testing purposes
   # api_notebook:
   #   image: cddd-explorer-api:latest
@@ -76,27 +48,27 @@ services:
   #         devices:
   #           - capabilities:
   #             - gpu
-  api_umap:
-    image: cddd-explorer-api-umap:latest
-    build: api_umap
-    volumes:
-      # Code
-      - ./api_umap:/home/backend
-      # Shared folder
-      - ./api_umap/_shared:/_shared
-    environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=all
-      - FLASK_ENV=development
-      - FLASK_APP=app.py
-    ports:
-      - 5001:5000
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - capabilities:
-              - gpu
+  # api_umap:
+  #   image: cddd-explorer-api-umap:latest
+  #   build: api_umap
+  #   volumes:
+  #     # Code
+  #     - ./api_umap:/home/backend
+  #     # Shared folder
+  #     - ./api_umap/_shared:/_shared
+  #   environment:
+  #     - NVIDIA_VISIBLE_DEVICES=all
+  #     - NVIDIA_DRIVER_CAPABILITIES=all
+  #     - FLASK_ENV=development
+  #     - FLASK_APP=app.py
+  #   ports:
+  #     - 5001:5000
+  #   # deploy:
+  #   #   resources:
+  #   #     reservations:
+  #   #       devices:
+  #   #         - capabilities:
+  #   #           - gpu
   # t-SNE API is not used right now.
   # api_tsne:
   #   image: cddd-explorer-api-tsne:latest

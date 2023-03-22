@@ -106,6 +106,7 @@ def compute_embedding(args):
                 }
         # Compute everything for precomputed embeddings
         # TODO: Combine with below function (as it is duplicated) 
+        precomputed_embeddings = []
         try:
             precomputed_embeddings = (list(structure_map.values())[0].get('embeddings') or {}).keys()
             logger.info(f'Processing existing embeddings: {precomputed_embeddings}')

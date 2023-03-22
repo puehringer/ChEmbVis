@@ -3,6 +3,7 @@ import * as React from "react";
 import Select from "react-select/creatable";
 import { ICollection, INearestNeighbors, IParticle, IParticleSelection } from "../interfaces";
 import { normalizeArray, toNumber } from "../utils";
+import { DEFAULT_PLOTLY_COLORSCALE } from "../utils/constants";
 import { PlotComponent, PLOTLY_CONFIG } from "./PlotComponent";
 import { LineupWrapper } from "./ranking/LineupWrapper";
 import { StructureImageColumn } from "./ranking/StructureImageColumn";
@@ -30,9 +31,7 @@ function getKNNByMetric(
 export function LocalNeighborhoodPlot({
   selected,
   collection,
-}: //   setHover,
-//   hover,
-{
+}: {
   selected: IParticle | null | undefined;
   collection: ICollection | null | undefined;
   setHover(hover: IParticle | null): void;
@@ -214,6 +213,12 @@ export function LocalNeighborhoodPlot({
     const selectedXValues = hover
       ? filteredAvailableEmbeddings.map(([key, value], i) => {
           const index = value.knn_particles.indexOf(hover);
+
+          console.log(
+            hover.index,
+            value.knn_particles,
+            value.knn_particles.find((p) => p.index === hover.index)
+          );
           return index >= 0 ? normalizedDistances[key][index] : NaN;
         })
       : null;
@@ -246,8 +251,8 @@ export function LocalNeighborhoodPlot({
       //   If we have a reference, color each point by the position in the reference embedding
       if (referenceIndexToDist) {
         color = value.knn_ind.map((ind) => referenceIndexToDist[ind] || NaN);
-      } else if (referenceEmbedding) {
-        color = value.knn_particles.map((p) => toNumber(p.properties[referenceEmbedding]));
+      } else if (referenceEmbedding && referenceEmbedding.startsWith("property=")) {
+        color = value.knn_particles.map((p) => toNumber(p.properties[referenceEmbedding.slice("property=".length)]));
       }
 
       return {
@@ -289,10 +294,14 @@ export function LocalNeighborhoodPlot({
   const data: Partial<Plotly.PlotData>[] = [...plotDataLines, ...plotDataSelection, ...plotDataScatter];
 
   const getPointsFromEvent = (e: Pick<Plotly.PlotMouseEvent, "points">): IParticle[] => {
-    console.log(e?.points);
     return collection
       ? Array.from(
-          new Set(e?.points?.sort((a, b) => +a.x! - +b.x!)?.map((p) => collection.data[p.customdata as number]))
+          new Set(
+            e?.points
+              ?.sort((a, b) => +a.x! - +b.x!)
+              // TODO: This should be an collection.data[p.customdata] but it gives wrong indices after adding a property embedding.
+              ?.map((p) => collection.data.find((d) => d.index === (p.customdata as number))!)
+          )
         ).filter(Boolean)
       : [];
   };
@@ -317,12 +326,22 @@ export function LocalNeighborhoodPlot({
           <div className="row">
             <div className="col d-flex flex-column align-items-center justify-content-center">
               <strong>Selected</strong>
-              {selected?.structure ? <StructureImage style={{ width: "100%" }} structure={selected.structure} align={undefined /* selected?.structure */} /> : null}
+              {selected?.structure ? (
+                <StructureImage
+                  style={{ width: "100%" }}
+                  structure={selected.structure}
+                  align={undefined /* selected?.structure */}
+                />
+              ) : null}
             </div>
             <div className="col d-flex flex-column align-items-center">
               <strong>Hovered</strong>
               {hover?.structure ? (
-                <StructureImage style={{ width: "100%" }} structure={hover.structure} align={undefined /* selected?.structure */} />
+                <StructureImage
+                  style={{ width: "100%" }}
+                  structure={hover.structure}
+                  align={undefined /* selected?.structure */}
+                />
               ) : null}
             </div>
             <div className="col d-flex flex-column align-items-center">
@@ -356,7 +375,7 @@ export function LocalNeighborhoodPlot({
                   })),
                   ...allAvailableProperties.map((property) => ({
                     label: `Property: ${property}`,
-                    value: property,
+                    value: `property=${property}`,
                   })),
                 ]}
                 closeMenuOnSelect={false}
@@ -413,8 +432,9 @@ export function LocalNeighborhoodPlot({
                   coloraxis: {
                     // cmin: referenceIndexToDist ? undefined : 0,
                     // cmax: referenceIndexToDist ? undefined : 1,
-                    colorscale: "Portland",
-                    // reversescale: true,
+                    // cmin: 0,
+                    // cmax: 1,
+                    ...DEFAULT_PLOTLY_COLORSCALE,
                     colorbar: {
                       title: "Distance",
                       titleside: "top",

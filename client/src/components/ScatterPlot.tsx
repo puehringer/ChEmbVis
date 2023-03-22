@@ -9,7 +9,7 @@ import groupBy from "lodash.groupby";
 import { scaleLinear, scaleSymlog } from "d3-scale";
 import { color } from "d3-color";
 import { useSyncedRef } from "../utils/hooks";
-import { DEFAULT_COLORWAY } from "../utils/constants";
+import { DEFAULT_COLORWAY, DEFAULT_PLOTLY_COLORSCALE } from "../utils/constants";
 
 const TRAJECTORY_TRACE_NAME = "Trajectories";
 
@@ -80,24 +80,24 @@ export const ScatterPlot = React.memo(
           const particles = c!.data;
           const isHover = i === 0;
 
-          const knnHoverFields = connectBy.filter((v) => v.startsWith('knn=')).map((v) => v.split("="));
+          const knnHoverFields = connectBy.filter((v) => v.startsWith("knn=")).map((v) => v.split("="));
           const isKNNHover = knnHoverFields.length > 0;
 
           let filteredParticles: IParticle[] | null = null;
-          if(isKNNHover) {
+          if (isKNNHover) {
             filteredParticles = particles;
           } else {
             const selectedInstancesByConnectBy = connectBy.map(
               (c) => new Set(selection.map((p) => p?.properties?.[c]?.toString()).filter((id) => id != null))
             );
-  
+
             filteredParticles = particles.filter((p) =>
               connectBy.every((connectBy, i) =>
                 selectedInstancesByConnectBy[i].has(p.properties?.[connectBy]?.toString())
               )
             );
           }
-  
+
           if (filteredParticles.length === 0) {
             return null;
           }
@@ -117,13 +117,14 @@ export const ScatterPlot = React.memo(
 
           // TOOD: This could be memoized.
           let groups: [string, IParticle[]][] | null = null;
-          if(isKNNHover) {
+          if (isKNNHover) {
             groups = knnHoverFields.map((key) => [
               key[1],
-              [hover!, ...(hover?.nearest_neighbors?.[key[1]]?.knn_particles
-                .slice(0, +key[2])
-                .reverse()
-                .filter(Boolean) || [])],
+              [
+                hover!,
+                ...(hover?.nearest_neighbors?.[key[1]]?.knn_particles.slice(0, +key[2]).reverse().filter(Boolean) ||
+                  []),
+              ],
             ]);
           } else {
             groups = Object.entries(
@@ -142,13 +143,11 @@ export const ScatterPlot = React.memo(
             allInstances.push(null);
             allSizes.push(...instances.map((_, i) => instanceScaler(i)));
             allSizes.push(null);
-            allColors.push(
-              ...instances.map((p, i) => (p === hover || p.selected ? "gold" : "lightgray"))
-            );
+            allColors.push(...instances.map((p, i) => (p === hover || p.selected ? "gold" : "lightgray")));
             allColors.push("darkblue");
           }
           const allBorderColors = allColors.map((c) => color(c!)!.darker().toString());
-
+          // @ts-ignore
           return {
             type: isHover ? "scatter" : "scattergl",
             mode: "lines+markers",
@@ -156,7 +155,7 @@ export const ScatterPlot = React.memo(
             y: allInstances.map((p) => lodashGet(p, yAccessor) ?? NaN),
             name: TRAJECTORY_TRACE_NAME,
             hoverinfo: "skip",
-            opacity: hover ? (isHover ? 1.0 : 0.05) : 0.2,
+            // opacity: hover ? (isHover ? 1.0 : 0.05) : 0.2,
             marker: {
               color: allColors,
               size: allSizes,
@@ -166,11 +165,16 @@ export const ScatterPlot = React.memo(
               },
               opacity: 1,
             },
+            colorscale: [
+              [0, "##a2d4d5"],
+              [1, "#127273"],
+            ],
             line: {
               color: lineColor.toString(),
               width: isKNNHover ? 0 : 2,
               shape: "spline",
               // opacity: 0.5
+              // @ts-ignore
             },
             showlegend: false,
           } as Partial<Plotly.PlotData>;
@@ -188,7 +192,7 @@ export const ScatterPlot = React.memo(
         const data = [
           ...figureState.data
             .filter((d) => d.name !== TRAJECTORY_TRACE_NAME)
-            .map((d) => ({ ...d, opacity: traces.length > 0 ? 0.2 : undefined })),
+            .map((d) => ({ ...d, opacity: traces.length > 0 ? 0.4 : undefined })),
           ...traces,
         ];
         return { ...figureState, data };
@@ -322,7 +326,7 @@ export const ScatterPlot = React.memo(
                 x: 1,
                 xanchor: "right",
                 y: 1.5,
-                bgcolor: 'rgba(255, 255, 255, 0.5)',
+                bgcolor: "rgba(255, 255, 255, 0.5)",
               },
               title,
               margin: {
@@ -333,6 +337,7 @@ export const ScatterPlot = React.memo(
                 pad: 4,
               },
             },
+            // @ts-ignore
             data: annotatedCollections.map(({ data, name, hidden, color, opacity, size, plotOptions }, i) => {
               const existingData = (figureState?.data.find((d) => d.name === name) as Partial<Plotly.PlotData>) || {};
 
@@ -363,7 +368,7 @@ export const ScatterPlot = React.memo(
                 size = Array.isArray(size) ? extendedParticles.map((p) => p.size).flat() : size;
                 groups = Array.isArray(groups) ? extendedParticles.map((p) => p.groups).flat() : groups;
               }
-
+              console.log(color)
               return {
                 ...existingData,
                 x,
@@ -404,7 +409,9 @@ export const ScatterPlot = React.memo(
                         yanchor: "middle",
                       }
                     : undefined,
-                  colorscale: "Portland",
+                    ...DEFAULT_PLOTLY_COLORSCALE,
+                    // colorscale: "Portland",
+                    // reversescale: true
                 },
                 transforms: (groupBy
                   ? [

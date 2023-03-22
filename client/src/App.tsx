@@ -14,15 +14,18 @@ function App() {
   const [activeTab, setActiveTab] = React.useState<EActiveTabs>(EActiveTabs.EMBEDDING);
   const [collections, _setCollections] = React.useState<ICollection[]>([]);
   const [registry, setRegistry] = React.useState<IRegistry | null>(null);
+  const [offline, setOffline] = React.useState<boolean>(false);
   const [interpolationStructures, setInterpolationStructures] = React.useState<string[]>([
     "NC1CC1C(=O)c1ccc2ccccc2c1",
     "O=C(CN1C(=O)CSc2ccc(S(=O)C3CC3)cc21)NCc1cccnc1",
   ]);
 
+
   React.useEffect(() => {
     getRegistry()
       .then((registry) => setRegistry(registry))
       .catch((e) => {
+        setOffline(true);
         console.error("Error initializing registry", e);
       });
   }, []);
@@ -202,6 +205,13 @@ function App() {
     [_setCollections]
   );
 
+  React.useEffect(() => {
+    // Import the bbbp dataset by default
+    import('./bbbp.json').then((importedDataset) => {
+      setCollections(importedDataset.default as any);
+    })
+  }, [setCollections])
+
   const interpolationCollection = React.useMemo(
     () => collections.find((c) => c.name === "Interpolated") as ICollection<IInterpolatedParticle> | undefined,
     [collections]
@@ -238,10 +248,14 @@ function App() {
                 >
                   Interpolation
                 </Nav.Link>
-                <Nav.Link href="/datasets/" target="_blank" active={false}>
+                {/* <Nav.Link href="/datasets/" target="_blank" active={false}>
                   Datasets
-                </Nav.Link>
+                </Nav.Link> */}
               </Nav>
+
+              {offline ? <Navbar.Text style={{color: 'red', marginLeft: 16}}>
+                backend not reachable, some features may not be available
+              </Navbar.Text> : null}
             </Nav>
             <Form>
               <Button
@@ -262,7 +276,7 @@ function App() {
               </Button>
             </Form>
           </Navbar.Collapse>
-  </Container>
+        </Container>
         </Navbar>
         <FileUploadModal
           open={importFileModalShow}

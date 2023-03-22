@@ -4,7 +4,8 @@ mhfp
 # hdbscan --> See slim.Dockerfile why this is disabled
 scikit-learn
 numpy
-flask
+flask==1.1.4
+markupsafe==2.0.1
 flask-smorest
 flask-cors
 flask-caching

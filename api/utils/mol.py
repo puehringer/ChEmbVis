@@ -1,5 +1,5 @@
 from rdkit import Chem
-from rdkit.Chem import AllChem, rdFMCS, Mol
+from rdkit.Chem import AllChem, rdFMCS, Mol, MACCSkeys
 from rdkit.Chem.Draw import rdMolDraw2D, SimilarityMaps
 from rdkit.ML.Descriptors import MoleculeDescriptors
 from rdkit.Chem.AtomPairs.Sheridan import GetBPFingerprint, GetBTFingerprint
@@ -28,7 +28,7 @@ def compute_properties(mol):
         return {'valid': False}
 
     # all_available_descriptors = [x[0] for x in Chem.Descriptors._descList]
-    all_available_descriptors = ['MolLogP', 'MolWt', 'MolMR', 'TPSA', 'qed']
+    all_available_descriptors = ['NumHeteroatoms', 'NOCount', 'NHOHCount', 'NumHDonors', 'NumHAcceptors', 'MolLogP', 'MolWt', 'MolMR', 'TPSA', 'qed']
     calculator = MoleculeDescriptors.MolecularDescriptorCalculator(
         all_available_descriptors)
 
@@ -153,6 +153,12 @@ class _FingerprintCalculator:
     def get_PATH(self, mol: Mol):
         return AllChem.RDKFingerprint(mol)
 
+    def get_MACCS(self, mol: Mol):
+        return MACCSkeys.GenMACCSKeys(mol)
+
+    def get_ECFP0(self, mol: Mol):
+        return AllChem.GetMorganFingerprintAsBitVect(mol, 0)
+
     def get_ECFP2(self, mol: Mol):
         return AllChem.GetMorganFingerprintAsBitVect(mol, 1)
 
@@ -161,6 +167,30 @@ class _FingerprintCalculator:
 
     def get_ECFP6(self, mol: Mol):
         return AllChem.GetMorganFingerprintAsBitVect(mol, 3)
+
+    def get_MHFP2(self, mol: Mol):
+        from mhfp.encoder import MHFPEncoder
+        mhfp_encoder = MHFPEncoder()
+        return mhfp_encoder.encode_mol(mol, radius=1)
+
+    def get_MHFP4(self, mol: Mol):
+        from mhfp.encoder import MHFPEncoder
+        mhfp_encoder = MHFPEncoder()
+        return mhfp_encoder.encode_mol(mol, radius=2)
+
+    def get_MHFP6(self, mol: Mol):
+        from mhfp.encoder import MHFPEncoder
+        mhfp_encoder = MHFPEncoder()
+        return mhfp_encoder.encode_mol(mol, radius=3)
+
+    def get_ECFP2_256(self, mol: Mol):
+        return AllChem.GetMorganFingerprintAsBitVect(mol, 1, nBits=256)
+
+    def get_ECFP4_256(self, mol: Mol):
+        return AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=256)
+
+    def get_ECFP6_256(self, mol: Mol):
+        return AllChem.GetMorganFingerprintAsBitVect(mol, 3, nBits=256)
 
     def get_FCFP4(self, mol: Mol):
         return AllChem.GetMorganFingerprintAsBitVect(mol, 2, useFeatures=True)

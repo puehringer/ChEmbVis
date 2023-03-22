@@ -8,7 +8,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy environment into backend
-COPY ./requirements.txt ./requirements.txt
+COPY ./requirements.slim.txt ./requirements.txt
 
 # Install latest pip and setuptools + cython to allow building of hdbscan
 RUN python -m pip install --upgrade pip setuptools cython
@@ -18,12 +18,9 @@ RUN pip install -r ./requirements.txt --no-cache-dir
 RUN pip install hdbscan --no-cache-dir --no-binary :all: --no-build-isolation
 
 # Copy everything else
-COPY . ./
+# COPY . ./
 # Move the _shared folder to the root of the image
-RUN mv ./_shared /_shared
-
-# HACK: For some reason chemical_vae installs Keras 2.0.7, which causes https://github.com/keras-team/keras/issues/7736 
-# RUN sed -i 's/v.constraint = constraint//' /opt/conda/envs/api/lib/python3.7/site-packages/keras/backend/tensorflow_backend.py
+# RUN mv ./_shared /_shared
 
 WORKDIR /home/backend/
-CMD ["flask", "run", "--host=0.0.0.0", "--eager-loading"]
+CMD ["flask", "run", "--host=0.0.0.0", "--reload"]

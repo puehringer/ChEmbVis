@@ -12,6 +12,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Install Node 14
+        uses: actions/setup-node@v3
+        with:
+          node-version: 14
+
       - name: Install and Build
         run: |
           cd client

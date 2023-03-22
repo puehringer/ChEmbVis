@@ -5,14 +5,14 @@ import base64
 from abc import ABC, abstractmethod
 import requests
 import json
-from sklearn import decomposition
-from sklearn.manifold import trustworthiness
+from sklearn import decomposition, manifold
 from ..constants import logger
 from .tmap import tmap_projection, tmap_hash_projection
 from .chembl_tsne import tsne_projection
 from ..utils import catch_time
 import math
 import zlib
+import umap
 
 class ProjectionModel(ABC):
     # Default data key
@@ -171,48 +171,32 @@ class RemoteProjectionModel(ProjectionModel):
         return result['data']
 
 
+
+
+def all_models(data_key: str): 
+    return {
+        f'{data_key}_pca': lambda: SKLearnProjectionModel(data_key, decomposition.PCA(n_components=2)),
+        f'{data_key}_tsne': lambda: SKLearnProjectionModel(data_key, manifold.TSNE(n_components=2, perplexity=30)),
+        f'{data_key}_umap': lambda: SKLearnProjectionModel(data_key, umap.UMAP(n_components=2, n_neighbors=25, min_dist=0.5)),
+        # f'{data_key}_umap': lambda: RemoteProjectionModel(data_key),
+        # f'{data_key}_densmap': lambda: RemoteProjectionModel(data_key, model_options={'densmap': True}),
+    }
+
+
 models = {
-    # 'chembl_pca': lambda: ChEMBLPCAModel(),
-    # 'chembl_tsne': lambda: ChEMBLTSNEModel(),
-    # 'chembl_umap': lambda: ChEMBLUMAPModel(),
-    'cddd_pca': lambda: SKLearnProjectionModel('cddd', decomposition.PCA(n_components=2)),
-    # 'cddd_tsne': lambda: SKLearnProjectionModel('cddd', manifold.TSNE(n_components=2, perplexity=30)),
-    'cddd_umap': lambda: RemoteProjectionModel('cddd'),
-    'cddd_densmap': lambda: RemoteProjectionModel('cddd', model_options={'densmap': True}),
-    # 'cddd_isomap': lambda: SKLearnProjectionModel('cddd', manifold.Isomap()),
-    'graph_pca': lambda: SKLearnProjectionModel('graph', decomposition.PCA(n_components=2)),
-    # 'graph_tsne': lambda: SKLearnProjectionModel('graph', manifold.TSNE(n_components=2, perplexity=30)),
-    'graph_umap': lambda: RemoteProjectionModel('graph'),
-    'graph_densmap': lambda: RemoteProjectionModel('graph', model_options={'densmap': True}),
-    # 'graph_isomap': lambda: SKLearnProjectionModel('graph', manifold.Isomap()),
-    # 'ecfp4_isomap': lambda: SKLearnProjectionModel('ecfp4', manifold.Isomap()),
-    'chemnet_pca': lambda: SKLearnProjectionModel('chemnet', decomposition.PCA(n_components=2)),
-    # 'chemnet_tsne': lambda: SKLearnProjectionModel('cddd', manifold.TSNE(n_components=2, perplexity=30)),
-    'chemnet_umap': lambda: RemoteProjectionModel('chemnet'),
-    'chemnet_densmap': lambda: RemoteProjectionModel('chemnet', model_options={'densmap': True}),
-    'molbert_pca': lambda: SKLearnProjectionModel('molbert', decomposition.PCA(n_components=2)),
-    # 'molbert_tsne': lambda: SKLearnProjectionModel('molbert', manifold.TSNE(n_components=2, perplexity=30)),
-    'molbert_umap': lambda: RemoteProjectionModel('molbert'),
-    'vae_pca': lambda: SKLearnProjectionModel('vae', decomposition.PCA(n_components=2)),
-    # 'vae_tsne': lambda: SKLearnProjectionModel('vae', manifold.TSNE(n_components=2, perplexity=30)),
-    'vae_umap': lambda: RemoteProjectionModel('vae'),
-    'vae_densmap': lambda: RemoteProjectionModel('vae', model_options={'densmap': True}),
-    'ecfp2_pca': lambda: SKLearnProjectionModel('ecfp2', decomposition.PCA(n_components=2)),
-    # 'ecfp2_tsne': lambda: SKLearnProjectionModel('ecfp2', manifold.TSNE(n_components=2, perplexity=30)),
-    'ecfp2_umap': lambda: RemoteProjectionModel('ecfp2'),
-    'ecfp2_densmap': lambda: RemoteProjectionModel('ecfp2', model_options={'densmap': True}),
-    'ecfp4_pca': lambda: SKLearnProjectionModel('ecfp4', decomposition.PCA(n_components=2)),
-    # 'ecfp4_tsne': lambda: SKLearnProjectionModel('ecfp4', manifold.TSNE(n_components=2, perplexity=30)),
-    'ecfp4_umap': lambda: RemoteProjectionModel('ecfp4'),
-    'ecfp4_densmap': lambda: RemoteProjectionModel('ecfp4', model_options={'densmap': True}),
-    'ecfp6_pca': lambda: SKLearnProjectionModel('ecfp6', decomposition.PCA(n_components=2)),
-    # 'ecfp6_tsne': lambda: SKLearnProjectionModel('ecfp6', manifold.TSNE(n_components=2, perplexity=30)),
-    'ecfp6_umap': lambda: RemoteProjectionModel('ecfp6'),
-    'ecfp6_densmap': lambda: RemoteProjectionModel('ecfp6', model_options={'densmap': True}),
-    # 'hash_tmap': lambda: TMAPHashModel(),
-    # 'cddd_mds': lambda: SKLearnProjectionModel('cddd', manifold.MDS(n_components=2, max_iter=100, n_init=1)),
-    # 'cddd_umap': lambda: SKLearnProjectionModel('cddd', umap.UMAP()),
-    # 'tmap_2': lambda: TMAPCDDDModel(),
+    # **all_models('cddd'),
+    # **all_models('graph'),
+    **all_models('chemnet'),
+    **all_models('molbert'),
+    # **all_models('vae'),
+    **all_models('maccs'),
+    **all_models('ecfp0'),
+    **all_models('ecfp2'),
+    **all_models('ecfp4'),
+    **all_models('ecfp6'),
+    **all_models('rdkit'),
+    **all_models('emb_clamp'),
+    # **all_models('map4'),
 }
 
 
@@ -262,6 +246,22 @@ def compute_all_projections(data, additional, options={}):
     return successful_projections, projections
 
 
+def trustworthiness_function():
+    try:
+        from sklearn.manifold import trustworthiness
+        return trustworthiness
+    except:
+        pass
+    try:
+        from sklearn.manifold.t_sne import trustworthiness
+        return trustworthiness
+    except:
+        pass
+    logger.error('Error importing: from sklearn.manifold.t_sne import trustworthiness or from sklearn.manifold import trustworthiness')
+    return None
+
+
+
 def compute_projections(data, additional, options):
     projection_type = options['type']
     model = options.get('model')
@@ -284,17 +284,9 @@ def compute_projections(data, additional, options):
     if type(projected_additional) is np.ndarray:
         projected_additional = projected_additional.tolist()
 
-    trustworthiness_score = None
-    try:
-        trustworthiness_score = trustworthiness(np.array(transformed_data), np.array(projected_data)) if transformed_data else None
-    except:
-        logger.exception('Error computing trustworthiness')
-
-    trustworthiness_additional_score = None
-    try:
-        trustworthiness_additional_score = trustworthiness(np.array(transformed_additional), np.array(projected_additional)) if transformed_additional else None
-    except:
-        logger.exception('Error computing additional trustworthiness')
+    trustworthiness = trustworthiness_function()
+    trustworthiness_score = trustworthiness(np.array(transformed_data), np.array(projected_data)) if trustworthiness and transformed_data else None
+    trustworthiness_additional_score = trustworthiness(np.array(transformed_additional), np.array(projected_additional)) if trustworthiness and transformed_additional else None
     
     return (projected_data, projected_additional, model, {
         "model": model.serialize_model(),

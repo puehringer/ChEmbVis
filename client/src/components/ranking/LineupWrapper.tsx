@@ -92,7 +92,7 @@ export const LineupWrapper = ({
         filter: false,
       })
       .sidePanel(true, true)
-      .deriveColors()
+      // .deriveColors()
       .dynamicHeight(() => ({
         defaultHeight: DEFAULT_HEIGHT,
         height: () => height,
@@ -144,7 +144,6 @@ export const LineupWrapper = ({
       // @ts-ignore
       (col) => ({ ...col, column: `properties.${col.column}` })
     );
-    console.log(propertiesColumns);
     propertiesColumns.forEach((col) => b.column(col));
 
     // Change the default renderer of the embedding column
@@ -231,8 +230,6 @@ export const LineupWrapper = ({
       const columnName = col.desc.label.toLowerCase();
       // @ts-ignore
       if (col.desc.lazy) {
-        console.log(col);
-        console.log("Clicked on lazy column", col);
         propertiesBuilder.deriveColumns(columnName);
         // @ts-ignore
         const createdColumnDesc = (propertiesBuilder.columns as IColumnDesc[])
@@ -242,7 +239,6 @@ export const LineupWrapper = ({
             // @ts-ignore
             (col) => ({ ...col, column: `properties.${col.column}` })
           )?.[0];
-        console.log(createdColumnDesc);
         disableTrigger = true;
         const createdColumn = lineup.data.getFirstRanking().insertAfter(lineup.data.create(createdColumnDesc)!, col);
         disableTrigger = false;

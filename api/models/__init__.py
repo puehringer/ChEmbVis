@@ -80,7 +80,7 @@ class GraphEmbedding(Embedding):
 class ChemNetEmbedding(Embedding):
     @property
     def model(self):
-        from fcd import  load_ref_model
+        from fcd import load_ref_model
         return load_ref_model()
 
     @property
@@ -159,13 +159,42 @@ class FingerprintEmbedding(Embedding):
         return ensure_np_array(mol.mols_to_fingerprints(smiles, self.fp))
 
 
+class MAP4Embedding(Embedding):
+
+    def __init__(self):
+        super().__init__()
+        import tmap as tm
+        from map4 import MAP4Calculator
+
+        dim = 1024
+        self.MAP4 = MAP4Calculator(dimensions=dim)
+        self.ENC = tm.Minhash(dim)
+
+    def distance_metric(self, x, y):
+        return self.ENC.get_distance(x, y)
+
+    def encode(self, smiles: List[str]) -> np.ndarray:
+        mols = [mol._string_to_mol(m) or mol._string_to_mol('*') for m in mols]
+        return ensure_np_array(self.MAP4.calculate_many(mols))
+
+
 embedding_models: Dict[str, Embedding] = {
-    'cddd': CDDDEmbedding(),
+    # 'cddd': CDDDEmbedding(),
     # 'graph': GraphEmbedding(),
-    'chemnet': ChemNetEmbedding(),
+    # 'chemnet': ChemNetEmbedding(),
     # 'molbert': MOLBertEmbedding(),
     # 'vae': VAEEmbedding(),
-    'ecfp2': FingerprintEmbedding('ecfp2'),
+    'maccs': FingerprintEmbedding('maccs'),
+    # 'ecfp0': FingerprintEmbedding('ecfp0'),
+    # 'ecfp2': FingerprintEmbedding('ecfp2'),
     'ecfp4': FingerprintEmbedding('ecfp4'),
     # 'ecfp6': FingerprintEmbedding('ecfp6'),
+    # 'rdkit': FingerprintEmbedding('path'),
+    # 'mhfp2': FingerprintEmbedding('mhfp2'),
+    # 'mhfp4': FingerprintEmbedding('mhfp4'),
+    # 'mhfp6': FingerprintEmbedding('mhfp6'),
+    # 'ecfp2_256': FingerprintEmbedding('ecfp2_256'),
+    # 'ecfp4_256': FingerprintEmbedding('ecfp4_256'),
+    # 'ecfp6_256': FingerprintEmbedding('ecfp6_256'),
+    # 'map4': MAP4Embedding()
 }
